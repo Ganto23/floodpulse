@@ -3,6 +3,9 @@ Pokémon GO telemetry loader (ACTIVE mode).
 
 Reads real crowdsourced scanner dumps placed in /data/raw:
 
+  0. Kaggle "Predict'em All" (semioniy/predictemall) — 296k real spawn sightings,
+     Sep 2-8 2016, auto-detected at kaggle_predictemall/300k.csv or 300k.csv
+     (fetch with scripts/fetch_kaggle_predictemall.sh)
   1. pokemon_telemetry.csv   — flat rows (RocketMap / PokemonGo-Map style exports)
   2. pokemon_telemetry.json  — list of records, or {"pokestops": [...], "gyms": [...]}
   3. pokestops.geojson       — Point features (community PokéStop maps)
@@ -24,7 +27,8 @@ from pathlib import Path
 import numpy as np
 import pandas as pd
 
-from config import RAW_DIR, TARGET_BBOX
+from config import (FOCUS_CITY, KAGGLE_TS_UTC_OFFSET_HOURS, RARE_SPECIES_SHARE, RAW_DIR,
+                    TARGET_BBOX)
 from loaders.base import BaseDataLoader, LoaderError
 from loaders.osm_loader import OSMAmenityLoader
 
@@ -41,6 +45,9 @@ NAME = ("name", "amenity", "title", "description")
 VALUE = ("value", "count", "weight", "activity")
 GYM_HINT_COLS = ("team_id", "team", "gym_points", "slots_available", "guard_pokemon_id")
 
+KAGGLE_SIGNATURE = {"pokemonId", "appearedLocalTime", "latitude", "longitude"}
+KAGGLE_COLS = ["pokemonId", "latitude", "longitude", "appearedLocalTime", "city"]
+
 FALSY = {"", "0", "false", "f", "no", "n", "none", "nan", "null", "0.0"}
 
 
@@ -53,13 +60,20 @@ class PokemonTelemetryLoader(BaseDataLoader):
 
     # ------------------------------------------------------------------ #
     def load_data(self) -> pd.DataFrame:
-        csv_p = self.raw_dir / "pokemon_telemetry.csv"
+        csv_p = self.first_existing([self.raw_dir / "pokemon_telemetry.csv",
+                                     self.raw_dir / "kaggle_predictemall" / "300k.csv",
+                                     self.raw_dir / "300k.csv"])
         json_p = self.raw_dir / "pokemon_telemetry.json"
         geo_p = self.raw_dir / "pokestops.geojson"
 
-        if csv_p.exists():
-            df = self._parse_tabular(pd.read_csv(csv_p, low_memory=False))
-            self._mark("raw_csv", csv_p)
+        if csv_p is not None:
+            header = set(pd.read_csv(csv_p, nrows=0).columns)
+            if KAGGLE_SIGNATURE <= header:
+                df = self._parse_kaggle(csv_p)
+                self._mark("kaggle:semioniy/predictemall", csv_p)
+            else:
+                df = self._parse_tabular(pd.read_csv(csv_p, low_memory=False))
+                self._mark("raw_csv", csv_p)
         elif json_p.exists():
             df = self._parse_json(json_p)
             self._mark("raw_json", json_p)
@@ -93,6 +107,49 @@ class PokemonTelemetryLoader(BaseDataLoader):
     # ------------------------------------------------------------------ #
     # Parsers
     # ------------------------------------------------------------------ #
+    def _parse_kaggle(self, path: Path) -> pd.DataFrame:
+        """
+        Kaggle Predict'em All: one row per observed wild spawn. It has no lure
+        field, so the highlight layer becomes *rare spawns*: species whose
+        combined sightings make up the rarest RARE_SPECIES_SHARE of the whole
+        dataset (rarity measured from the data itself, before city filtering).
+        """
+        raw = pd.read_csv(path, usecols=KAGGLE_COLS, low_memory=False)
+        n_all = len(raw)
+        counts = raw["pokemonId"].value_counts().sort_values()
+        rare_ids = set(counts.index[counts.cumsum() <= RARE_SPECIES_SHARE * n_all])
+
+        # the dataset is scanner output; identical (species, place, second) rows are re-scans
+        raw = raw.drop_duplicates(subset=["pokemonId", "latitude", "longitude", "appearedLocalTime"])
+        dupes = n_all - len(raw)
+
+        if FOCUS_CITY:
+            cities = raw["city"].value_counts()
+            if FOCUS_CITY not in cities.index:
+                raise LoaderError(f"FOCUS_CITY={FOCUS_CITY!r} not in dataset; top cities: "
+                                  f"{', '.join(cities.index[:10])}")
+            raw = raw[raw["city"] == FOCUS_CITY]
+
+        ts = pd.to_datetime(raw["appearedLocalTime"], errors="coerce").dt.tz_localize("UTC")
+        ts = ts + pd.Timedelta(hours=KAGGLE_TS_UTC_OFFSET_HOURS)
+
+        self.highlight_category = "rare"
+        self.highlight_label = "Rare Spawns"
+        self.value_label = "Wild spawn sightings"
+        self.event_noun = "spawn"
+        self.report.notes.append(
+            f"Kaggle Predict'em All: {n_all:,} sightings, {dupes:,} exact re-scan duplicates dropped, "
+            f"city={FOCUS_CITY or 'all'} -> {len(raw):,} rows; {len(rare_ids)} of {len(counts)} species "
+            f"tagged rare (bottom {RARE_SPECIES_SHARE:.0%} of sightings)"
+        )
+        self.report.notes.append("appearedLocalTime is a single global clock (not per-city local); "
+                                 f"treated as UTC{KAGGLE_TS_UTC_OFFSET_HOURS:+g}h")
+        return pd.DataFrame({
+            "latitude": raw["latitude"], "longitude": raw["longitude"], "timestamp": ts,
+            "value": 1.0,
+            "category": np.where(raw["pokemonId"].isin(rare_ids), "rare", "spawn"),
+        })
+
     def _parse_tabular(self, raw: pd.DataFrame, default_kind: str | None = None) -> pd.DataFrame:
         lat_c, lon_c, ts_c = (self.find_column(raw, a) for a in (LAT, LON, TS))
         if not (lat_c and lon_c):

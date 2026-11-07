@@ -80,6 +80,10 @@ class UrbanPulsePipeline:
         self.tensor_engine = TensorEngine()
         self._lock = threading.Lock()
         self._frame_ts: list[pd.Timestamp] = []
+        self.highlight_category = self.profile.highlight_category
+        self.highlight_label = self.profile.highlight_label
+        self.value_label = self.profile.value_label
+        self.event_noun = self.profile.event_noun
 
     # ------------------------------------------------------------------ #
     def start_background(self) -> None:
@@ -105,6 +109,10 @@ class UrbanPulsePipeline:
         loader = get_loader(config.DATASET_MODE)
         events = loader.load_data()
         st.loader = loader.describe()
+        self.highlight_category = loader.highlight_category or self.profile.highlight_category
+        self.highlight_label = loader.highlight_label or self.profile.highlight_label
+        self.value_label = loader.value_label or self.profile.value_label
+        self.event_noun = loader.event_noun or self.profile.event_noun
 
         st.stage = "indexing H3 grid"
         events = self._focus(events, st)
@@ -133,7 +141,7 @@ class UrbanPulsePipeline:
         st.notes.extend(notes)
         times = time_index(*_floor_range(events["timestamp"], freq), freq)[-config.MAX_TIME_STEPS:]
         wx = weather_loader.load(times[0], times[-1] + pd.Timedelta(hours=freq_hours(freq)))
-        tens = self.tensor_engine.build(events, st.cells, freq, self.profile.highlight_category,
+        tens = self.tensor_engine.build(events, st.cells, freq, self.highlight_category,
                                         wx.frame, static, times=times)
         horizon = max(4, math.ceil(self.profile.short_horizon_minutes / 60 / freq_hours(freq)))
         st.stage = "forecasting nowcast (zero-shot)"
@@ -144,7 +152,7 @@ class UrbanPulsePipeline:
         months = time_index(*_floor_range(events["timestamp"], "MS"), "MS")[-config.MAX_TIME_STEPS:]
         if len(months) >= config.LONG_RANGE_MIN_PERIODS and freq != "MS":
             wx_l = weather_loader.load(months[0], months[-1] + pd.offsets.MonthEnd(1), granularity="daily")
-            tens_l = self.tensor_engine.build(events, st.cells, "MS", self.profile.highlight_category,
+            tens_l = self.tensor_engine.build(events, st.cells, "MS", self.highlight_category,
                                               wx_l.frame, static, times=months)
             end = pd.Timestamp(config.LONG_RANGE_END, tz="UTC")
             h_l = len(pd.date_range(months[-1], end, freq="MS")) - 1
@@ -231,7 +239,7 @@ class UrbanPulsePipeline:
         horizon_label = _horizon_label(f, st)
         labels, cards = signals.generate(
             cells=st.cells, centers=st.centers, regime=reg.name, realized=realized,
-            denoised=surface, forecast=fc, momentum=momentum, noun=prof.event_noun,
+            denoised=surface, forecast=fc, momentum=momentum, noun=self.event_noun,
             horizon_label=horizon_label,
         )
 
@@ -255,7 +263,7 @@ class UrbanPulsePipeline:
             "meta": {
                 "timestamp": f.ts.isoformat(), "kind": f.kind, "regime": reg.name,
                 "freq": tens.freq, "horizon_label": horizon_label,
-                "value_label": prof.value_label, "momentum_unit": f"Δ{prof.value_label}/{tens.freq}",
+                "value_label": self.value_label, "momentum_unit": f"Δ{self.value_label}/{tens.freq}",
                 "max_surface": float(np.max(surface)) if surface is not None and len(surface) else 0.0,
                 "weather": self._weather_at(reg, f.ts),
             },
@@ -269,7 +277,7 @@ class UrbanPulsePipeline:
         ev = self.state.events
         step = pd.tseries.frequencies.to_offset(f.regime.tensor.freq)
         sel = ev[(ev["timestamp"] >= f.ts) & (ev["timestamp"] < f.ts + step)
-                 & (ev["category"] == self.profile.highlight_category)]
+                 & (ev["category"] == self.highlight_category)]
         return [{"latitude": r.latitude, "longitude": r.longitude, "category": r.category,
                  "timestamp": r.timestamp.isoformat()} for r in sel.head(500).itertuples()]
 

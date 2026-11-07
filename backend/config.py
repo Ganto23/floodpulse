@@ -78,8 +78,8 @@ MODE_PROFILES: dict[str, ModeProfile] = {
         highlight_label="Active Lures",
         preferred_freq="15min",
         short_horizon_minutes=90,
-        raw_files=("pokemon_telemetry.csv", "pokemon_telemetry.json",
-                   "pokestops.geojson"),
+        raw_files=("pokemon_telemetry.csv", "kaggle_predictemall/300k.csv", "300k.csv",
+                   "pokemon_telemetry.json", "pokestops.geojson"),
     ),
     "osm": ModeProfile(
         key="osm",
@@ -128,6 +128,16 @@ TARGET_BBOX: tuple[float, float, float, float] = _env(
 # Overpass refuses huge boxes; cap the area we will ever query (degrees^2).
 MAX_OVERPASS_AREA: float = _env("MAX_OVERPASS_AREA", 0.01)
 
+# Multi-city datasets (e.g. Kaggle Predict'em All): pin a region by its `city` column.
+# NB: in Predict'em All `city` is the *timezone* region ("New_York" spans the whole US
+# East Coast), so the pipeline still takes the densest metro inside it. "Prague" is the
+# densest true metro cluster (~9.3k sightings). Empty = no city filter.
+FOCUS_CITY: str = _env("FOCUS_CITY", "Prague")
+# Kaggle `appearedLocalTime` is one global clock (not per-city local time); hours to ADD to reach UTC.
+KAGGLE_TS_UTC_OFFSET_HOURS: float = _env("KAGGLE_TS_UTC_OFFSET_HOURS", 0.0)
+# Species whose combined sightings form the rarest X share are tagged category="rare".
+RARE_SPECIES_SHARE: float = _env("RARE_SPECIES_SHARE", 0.05)
+
 H3_RESOLUTION: int = _env("H3_RESOLUTION", 9)   # 8 ≈ 0.74 km², 9 ≈ 0.11 km²
 CATCHMENT_RINGS: int = _env("CATCHMENT_RINGS", 3)  # k-rings ≈ 5/10/15 min walk @ res 9
 
@@ -148,7 +158,7 @@ FOCUS_RESOLUTION: int = _env("FOCUS_RESOLUTION", 5)   # densest res-5 region = s
 MIN_BIN_DENSITY: float = _env("MIN_BIN_DENSITY", 0.10)  # coarsen freq below this
 TUCKER_RANK_SPATIAL: int = _env("TUCKER_RANK_SPATIAL", 12)
 TUCKER_RANK_TEMPORAL: int = _env("TUCKER_RANK_TEMPORAL", 8)
-TUCKER_RANK_FEATURE: int = _env("TUCKER_RANK_FEATURE", 3)
+TUCKER_RANK_FEATURE: int = _env("TUCKER_RANK_FEATURE", 8)  # <8 starves the activity slice
 LONG_RANGE_FREQ = "MS"                       # month-start bins for multi-year view
 LONG_RANGE_END: str = _env("LONG_RANGE_END", "2030-12-01")
 LONG_RANGE_MIN_PERIODS: int = _env("LONG_RANGE_MIN_PERIODS", 12)

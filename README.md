@@ -26,7 +26,9 @@ cd frontend && npm install && npm run dev      # http://localhost:5173 (proxies 
 
 The API comes up immediately and runs the pipeline in the background. The first cold run makes live
 Overpass and Open-Meteo calls (about 1–2 min). After that, responses are cached in `data/cache/`.
-Put real datasets in `data/raw/` (see [data/raw/README.md](data/raw/README.md)).
+Put real datasets in `data/raw/` (see [data/raw/README.md](data/raw/README.md)). For the Pokémon demo, run
+`./scripts/fetch_kaggle_predictemall.sh` first. It downloads 296k real 2016 spawn sightings, and the pipeline
+focuses on Prague by default.
 
 ### Enable the transformer forecaster
 
@@ -77,5 +79,7 @@ data/raw/                 your real datasets (git-ignored)
 - The status panel shows exactly which source fed each layer: `ONLINE`, `DEGRADED` (fallback in use) or `OFFLINE`.
 - The multi-year regime only switches on with at least 12 months of real history. The nowcast bin size
   coarsens automatically (e.g. 15 min → 3 h) when the stream is too sparse, and the pipeline log records the change.
+- The Kaggle dataset covers only 6 days. The multi-year regime stays off in Pokémon mode, so the 2026–2030 view
+  is only available in `osm` or `housing` mode.
 - With the OSM fallback, timestamps are *last-edit* times, so recent months are over-represented. Use a real
   scanner dump to get true foot-traffic dynamics.

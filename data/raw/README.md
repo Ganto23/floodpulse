@@ -5,6 +5,29 @@ folder or a real public API, and `/api/status` reports which source was used.
 
 ## Pokémon GO (`DATASET_MODE=pokemon`, default)
 
+### Recommended: Kaggle "Predict'em All" (real 2016 spawn telemetry)
+
+```bash
+./scripts/fetch_kaggle_predictemall.sh     # -> data/raw/kaggle_predictemall/300k.csv
+```
+
+[`semioniy/predictemall`](https://www.kaggle.com/datasets/semioniy/predictemall) contains 296,021 wild-spawn
+sightings from 2016-09-02 to 2016-09-08 across about 40 timezone regions. Kaggle lists its license as "Unknown",
+so cite it and don't redistribute it. The loader auto-detects the file and handles these quirks:
+
+- **`city` is a timezone region, not a city.** `New_York` covers the whole US East Coast, and its densest
+  cluster is in Vermont. `FOCUS_CITY` (default `Prague`) filters by that label, and the pipeline then takes the
+  densest metro inside it. Prague is the densest true city cluster, with about 9.3k sightings. Paris (about 5k)
+  is a good second choice: `URBANPULSE_FOCUS_CITY=Paris`.
+- **`appearedLocalTime` is one global clock, not local time.** It sits exactly 2 h behind `appearedHour` in every
+  region. It's treated as UTC; adjust with `URBANPULSE_KAGGLE_TS_UTC_OFFSET_HOURS`.
+- **There are no lures**, so the highlight layer is **rare spawns** instead. These are species whose combined
+  sightings make up the rarest 5% of the dataset, measured from the data itself.
+- **Collection effort isn't constant.** Daily volume peaks on Sep 5–6 and drops sharply on Sep 7–8. Part of the
+  late "momentum decay" reflects fewer scans, not fewer players.
+
+### Other sources
+
 The first file found wins:
 
 | File | Format |

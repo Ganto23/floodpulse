@@ -102,8 +102,8 @@ def status() -> StatusResponse:
     elapsed = ((st.finished_at or time.time()) - st.started_at) if st.started_at else None
     return StatusResponse(
         pipeline=st.status, stage=st.stage, error=st.error,
-        mode=ModeDescriptor(key=prof.key, label=prof.label, value_label=prof.value_label,
-                            event_noun=prof.event_noun, highlight_label=prof.highlight_label),
+        mode=ModeDescriptor(key=prof.key, label=prof.label, value_label=pipeline.value_label,
+                            event_noun=pipeline.event_noun, highlight_label=pipeline.highlight_label),
         sources=sources, tensor=tensor, notes=st.notes,
         elapsed_s=round(elapsed, 1) if elapsed else None,
     )

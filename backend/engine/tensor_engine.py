@@ -198,7 +198,16 @@ class TensorEngine:
 
     @staticmethod
     def _align_weather(weather: pd.DataFrame, times: pd.DatetimeIndex, freq: str) -> pd.DataFrame:
-        w = weather.copy()
+        w = weather.sort_index()
+        w_step = w.index.to_series().diff().median() if len(w) > 1 else pd.Timedelta(hours=1)
+        b_step = pd.Timedelta(hours=freq_hours(freq))
+        if w_step > b_step:
+            # source coarser than bins (hourly weather, 15-min bins): carry each reading
+            # forward across its own interval and split precipitation totals evenly
+            out = w.reindex(times, method="ffill", tolerance=w_step)
+            out["precipitation"] = out["precipitation"] * (b_step / w_step)
+            return out
+        w = w.copy()
         w.index = floor_ts(w.index.to_series(), freq).to_numpy()
         agg = w.groupby(level=0).agg({"precipitation": "sum", "temperature": "mean", "wind_speed": "mean"})
         return agg.reindex(times)

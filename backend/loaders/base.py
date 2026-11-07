@@ -58,6 +58,12 @@ class BaseDataLoader(ABC):
     """Base class for all dataset adapters."""
 
     name: str = "base"
+    # Loaders may override the mode's highlighted category when their source
+    # carries a different real signal (e.g. Kaggle spawns have no lure field).
+    highlight_category: str | None = None
+    highlight_label: str | None = None
+    value_label: str | None = None
+    event_noun: str | None = None
 
     def __init__(self) -> None:
         self.report = LoaderReport()
