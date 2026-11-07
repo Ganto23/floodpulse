@@ -1,0 +1,63 @@
+
+============================================================================================
+FLOOD  146 rolling origins from 2024-08-07, context 1024 h, horizon 24 h  (TimesFM 10.6s)
+   xreg: 2 issued-forecast covariates: ['fc_precipitation', 'fc_temperature_2m'] (11.9s)
+   model                MAE      RMSE     MAPE    MAE@1h      @6h     @12h     @24h
+   timesfm          0.01118   0.03845     5.8%   0.00154 0.007328  0.01072  0.01895
+   timesfm+xreg     0.01228    0.0369     6.8%  0.004329 0.008097  0.01122  0.02028
+   persistence      0.01582   0.04997     8.2%  0.002572  0.01178  0.01616  0.02582
+   drift            0.01609   0.05055     8.3%  0.002592  0.01189  0.01638  0.02641
+   seasonal_24      0.02082   0.05355    11.5%   0.02206  0.02042  0.01967  0.02582
+   seasonal_168     0.03937    0.0735    25.1%   0.04102  0.03785  0.03637  0.04499
+   TimesFM 80% interval coverage: 76.1%
+   EVENT windows (top-20% real rises, n=30):  MAE | peak |err| | peak bias
+      drift            0.03332     0.09487    -0.09487
+      persistence      0.03344     0.09578    -0.09578
+      timesfm          0.03566     0.09522    -0.09522
+      timesfm+xreg      0.0378      0.0771    -0.03578
+      seasonal_24      0.03952     0.09585     -0.0762
+      seasonal_168     0.06212      0.1207    -0.07958
+   timesfm: MAE skill vs drift +30.5% | vs best baseline (persistence) +29.3%
+   timesfm+xreg: MAE skill vs drift +23.6% | vs best baseline (persistence) +22.4%
+
+============================================================================================
+GRID  146 rolling origins from 2024-08-07, context 1024 h, horizon 24 h  (TimesFM 10.5s)
+   xreg: 3 issued-forecast covariates: ['fc_temperature_2m', 'fc_shortwave_radiation', 'fc_wind_speed_10m'] (10.6s)
+   model                MAE      RMSE     MAPE    MAE@1h      @6h     @12h     @24h
+   timesfm+xreg        1198      1690     4.6%     388.3    666.7     1222     1285
+   timesfm             1232      1703     4.8%     414.3      740     1297     1417
+   seasonal_24         1967      2700     7.5%      1829     1193     2488     1754
+   seasonal_168        2000      2598     7.6%      1919     1489     1723     1846
+   persistence         6612      8079    28.6%      13271.135e+04     8096     1754
+   drift               6744      8194    29.1%      13401.143e+04     8265     1810
+   TimesFM 80% interval coverage: 73.6%
+   EVENT windows (top-20% real rises, n=30):  MAE | peak |err| | peak bias
+      timesfm+xreg        1277        1392      -669.3
+      timesfm             1325        1504      -821.8
+      seasonal_168        2385        2050      -709.5
+      seasonal_24         2974        2700       -2602
+      persistence         5733        3840       -3840
+      drift               5767        3528       -3528
+   timesfm: MAE skill vs drift +81.7% | vs best baseline (seasonal_24) +37.3%
+   timesfm+xreg: MAE skill vs drift +82.2% | vs best baseline (seasonal_24) +39.1%
+
+============================================================================================
+AIR  30 rolling origins from 2024-08-07, context 1024 h, horizon 24 h  (TimesFM 2.2s)
+   xreg: 3 issued-forecast covariates: ['fc_wind_speed_10m', 'fc_temperature_2m', 'fc_precipitation'] (2.3s)
+   model                MAE      RMSE     MAPE    MAE@1h      @6h     @12h     @24h
+   timesfm+xreg       7.012     9.961    26.8%     3.451    4.968    6.166    11.46
+   timesfm            8.254     11.62    35.3%     3.389    6.546    7.804    13.51
+   seasonal_168       12.16     15.32    53.6%     15.66    13.55    9.288    14.38
+   seasonal_24        12.57     16.86    55.7%      15.2    13.03    9.651       16
+   persistence        14.14     19.28    67.3%      3.72      9.6    17.54       16
+   drift              14.32     19.53    68.1%      3.72    9.713    17.78    16.24
+   TimesFM 80% interval coverage: 80.6%
+   EVENT windows (top-20% real rises, n=6):  MAE | peak |err| | peak bias
+      timesfm+xreg       10.06       28.75      -28.75
+      timesfm            10.74       29.98      -29.98
+      seasonal_168       12.63        14.7       -14.7
+      persistence        13.82       39.88      -39.88
+      drift              13.82       39.71      -39.71
+      seasonal_24        15.55       24.43      -24.43
+   timesfm: MAE skill vs drift +42.3% | vs best baseline (seasonal_168) +32.1%
+   timesfm+xreg: MAE skill vs drift +51.0% | vs best baseline (seasonal_168) +42.3%

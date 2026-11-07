@@ -10,3 +10,5 @@ data/raw/*
 .env
 .DS_Store
 frontend/tsconfig.tsbuildinfo
+eval_harness/.venv/
+eval_harness/data/raw_cache/
