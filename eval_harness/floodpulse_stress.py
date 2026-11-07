@@ -40,6 +40,7 @@ Output: results/floodpulse/<gauge>.json
 from __future__ import annotations
 
 import json
+import os
 import sys
 import time
 import warnings
@@ -52,7 +53,7 @@ from sklearn.ensemble import HistGradientBoostingRegressor
 warnings.filterwarnings("ignore")
 ROOT = Path(__file__).parent
 RIVERS = ROOT / "data" / "rivers"
-RES = ROOT / "results" / "floodpulse"
+RES = Path(os.environ.get("FP_OUT", ROOT / "results" / "floodpulse"))
 CTX, H = 512, 24
 STORMS = {"ciara_dennis": ("2020-02-05", "2020-02-25 23:00"), "babet": ("2023-10-17", "2023-10-25 23:00")}
 BUFFER = pd.Timedelta(days=7)
@@ -264,6 +265,9 @@ def run(slug: str, catch: dict) -> dict:
                     "surge_bias": float((p - yt)[surge].mean()) if surge.any() else None,
                     "surge_rows": int(surge.sum()),
                 }
+            if os.environ.get("FP_DUMP") and set_name == "2024":
+                np.savez_compressed(Path(os.environ["FP_DUMP"]) / f"{slug}_{set_name}_{var}.npz",
+                                    yt=yt, o=o, h=h, valid=valid, ssi=ssi[o], **preds)
             vres["crest"] = crest_metrics(preds, yt, o, h, t, valid, origins, y_raw, idx, set_name)
             vres["warning"] = warning_metrics(preds, yt, o, h, t, valid, origins, y_raw, p99, set_name)
             sres["variants"][var] = vres

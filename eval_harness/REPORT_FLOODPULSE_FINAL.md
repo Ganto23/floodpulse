@@ -16,11 +16,19 @@
 > actually *Mytholmroyd Dauber Bridge on Cragg Brook*, a tributary. The real River Calder gauge at Mytholmroyd
 > (NRFA 27088) is included here and gives −37% / −44% / −50%, so the original finding holds for the correct river.
 
+> **Audit addendum** (see `AUDIT_FLOODPULSE.md`):
+> - Forecast publication latency is undocumented, so 24 h-old forecasts may not all have been public in time.
+>   With strictly-public **48 h-old** forecasts, the error reduction is **−25% / −28% / −36%**, still positive at
+>   9/9 gauges. **Quote the range: −25…−45%.**
+> - Storm crest capture rests on 6–7 rivers. Babet 3/7 has a 95% CI of 16–75%, so it's indicative only.
+> - "Mean" error reductions below are medians.
+> - Storm tests use models fitted on later years (not chronological).
+
 ## Headline metrics
 
 | Metric (across gauges) | Result |
 |---|---|
-| **Mean error reduction:** real issued rain forecasts vs river-history-only model (linear, 9 gauges, Aug–Dec 2024) | median **−32% @6 h, −43% @12 h, −45% @24 h**; 24 h range −19% (lake-fed Derwent) to −57% |
+| **Error reduction (median):** real issued rain forecasts vs river-history-only model (linear, 9 gauges, Aug–Dec 2024) | median **−32% @6 h, −43% @12 h, −45% @24 h** with 24 h-old forecasts; **−25% / −28% / −36%** with strictly-public 48 h-old forecasts; 24 h range −4%…−57% |
 | **Mean error reduction:** TimesFM + surge booster with **real issued forecasts** (2024, 9 gauges, all hours) | median **−25% vs TimesFM**, **−41% vs persistence**; surge hours (>P95) **−45% vs TimesFM**. Beats TimesFM at **9/9** gauges |
 | **Storm Babet peak capture** (crest within ±20% of rise and ±3 h; 7 gauges) | perfect rain forecast: **43% at 12 h lead**, 0% at 6 h lead · past rain only: **0% at 12 h**, 17% at 6 h · TimesFM alone: 0% / 17% |
 | **Average lead-time warning window** (sustained warning before crossing the P99 level; mean over all events, misses = 0 h) | **real 2024 forecasts: 1.7 h** (3.7 h when caught; 46% of 61 events caught; false-alarm ratio 0.17) · perfect forecast, storms: **15.4 h (Ciara/Dennis, 25 events) / 13.8 h (Babet, 5)** · past rain only, storms: 3.0 h / 1.4 h |
