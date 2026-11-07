@@ -16,7 +16,7 @@ from fastapi.middleware.cors import CORSMiddleware
 
 import config
 from engine.pipeline import UrbanPulsePipeline
-from schemas import (InfrastructureResponse, ModeDescriptor, SourceStatus, SpatialFrameResponse,
+from schemas import (BacktestResponse, InfrastructureResponse, ModeDescriptor, SourceStatus, SpatialFrameResponse,
                      StatusResponse, TimelineFrame, TimelineResponse)
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(name)s: %(message)s")
@@ -138,6 +138,13 @@ def infrastructure(max_paths: int = 4000) -> InfrastructureResponse:
         transit=infra.transit.head(3000).to_dict("records"),
         paths=infra.paths[:max_paths], source=infra.source,
     )
+
+
+@app.get("/api/backtest", response_model=BacktestResponse)
+def backtest() -> BacktestResponse:
+    """Rolling-origin out-of-sample evaluation of the nowcast vs. baselines."""
+    st = pipeline.state
+    return BacktestResponse(status=st.backtest_status, error=st.backtest_error, result=st.backtest)
 
 
 @app.post("/api/refresh")

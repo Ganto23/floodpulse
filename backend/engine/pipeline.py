@@ -25,6 +25,7 @@ import pandas as pd
 import config
 from data import h3_grid
 from engine import signals
+from engine.backtest import run_backtest
 from engine.forecast_engine import ForecastEngine
 from engine.tensor_engine import TensorEngine, TensorResult, freq_hours, select_frequency, time_index
 from loaders import get_loader
@@ -70,6 +71,10 @@ class PipelineState:
     regimes: dict[str, Regime] = field(default_factory=dict)
     frames: list[FrameRef] = field(default_factory=list)
     notes: list[str] = field(default_factory=list)
+    static: np.ndarray | None = None
+    backtest_status: str = "pending"  # pending | running | ready | error
+    backtest: dict | None = None
+    backtest_error: str | None = None
 
 
 class UrbanPulsePipeline:
@@ -102,6 +107,8 @@ class UrbanPulsePipeline:
             st.notes.append(traceback.format_exc(limit=3))
         finally:
             st.finished_at = time.time()
+        if st.status == "ready":   # map is live; backtest runs after, off the critical path
+            self._run_backtest(st)
             self._lock.release()
 
     def _run(self, st: PipelineState) -> None:
@@ -132,6 +139,7 @@ class UrbanPulsePipeline:
             h3_grid.cell_counts(st.infra.footways, st.cells, weight="length_m"),
             h3_grid.cell_counts(st.infra.buildings, st.cells),
         ])
+        st.static = static
 
         weather_loader = OpenMeteoWeatherLoader(st.bbox)
 
@@ -165,6 +173,24 @@ class UrbanPulsePipeline:
                 f"< {config.LONG_RANGE_MIN_PERIODS} required for a multi-year forecast"
             )
         self._assemble_frames(st)
+
+    def _run_backtest(self, st: PipelineState) -> None:
+        reg = st.regimes.get("nowcast")
+        if reg is None:
+            return
+        st.backtest_status = "running"
+        try:
+            st.backtest = run_backtest(
+                events=st.events, cells=st.cells, freq=reg.tensor.freq,
+                highlight_category=self.highlight_category, weather=reg.weather.frame,
+                static=st.static, realized=reg.tensor.realized, times=reg.tensor.times,
+                horizon=len(reg.horizon_times), forecaster=self.forecaster,
+                tensor_engine=self.tensor_engine,
+            )
+            st.backtest_status = "ready"
+        except Exception as exc:
+            log.exception("backtest failed")
+            st.backtest_status, st.backtest_error = "error", f"{type(exc).__name__}: {exc}"
 
     # ------------------------------------------------------------------ #
     def _focus(self, events: pd.DataFrame, st: PipelineState) -> pd.DataFrame:

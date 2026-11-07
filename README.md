@@ -58,6 +58,7 @@ Every setting can be overridden with an `URBANPULSE_<NAME>` environment variable
 | `GET /api/status` | Source health (rows ingested, Open-Meteo rows, OSM node count, forecaster backend), tensor stats, pipeline log |
 | `GET /api/timeline` | Frame list: monthly history → nowcast history → nowcast forecast → monthly forecast to 2030 |
 | `GET /api/spatial-frame?timestamp=` | H3 GeoJSON with realized / denoised / forecast (+ 80% band) / ΔS/Δt / signal per cell, plus lures, momentum vectors, catchments and signal cards |
+| `GET /api/backtest` | Rolling-origin out-of-sample evaluation: UrbanPulse vs. no-denoise ablation, persistence, historical mean, t−24h, zero floor |
 | `GET /api/infrastructure` | OSM transit nodes and pedestrian polylines for the map context layer |
 | `POST /api/refresh` | Re-run the pipeline |
 
@@ -73,6 +74,29 @@ backend/
 frontend/src/             App, MapCanvas (deck.gl + MapLibre), TimelineScrubber, TelemetrySidebar, SignalsPanel, lib/types.ts
 data/raw/                 your real datasets (git-ignored)
 ```
+
+## Backtest
+
+After the map goes live, the pipeline runs `engine/backtest.py`. At 24 origins spread over the back half of the
+history, it refits everything on the data before that origin only: the scaler, Tucker and the forecaster. It then
+forecasts the next 90 minutes per H3 cell and scores the result against the real sightings. Windows with fewer than
+20 sightings are scanner outages, so they're excluded and counted. Metrics are pooled WAPE, allocation (share)
+error, and precision@K. Results appear in the sidebar and at `/api/backtest`.
+
+Results on Kaggle Prague (res 9, 15-min bins, damped-Holt forecaster, 15 valid origins):
+
+| model | WAPE ↓ | share err ↓ | P@20 ↑ |
+|---|---|---|---|
+| **UrbanPulse** | **1.232** | 0.877 | 0.163 |
+| same forecaster, no denoising | 1.426 | 0.830 | 0.240 |
+| persistence | 1.460 | 0.816 | 0.227 |
+| historical mean | 1.605 | 0.876 | 0.183 |
+| seasonal t−24h | 1.704 | 0.928 | 0.090 |
+| predict zero | 1.000 | 1.000 | — |
+
+UrbanPulse has 16% lower WAPE than persistence and 14% lower than the same forecaster without denoising. But
+per-cell 15-min counts are so sparse that no model beats predicting zero on WAPE. On *where* activity lands
+(share error, P@K), persistence and the raw forecaster do as well or better. Re-run after enabling TimesFM.
 
 ## Notes on honesty (for judges)
 

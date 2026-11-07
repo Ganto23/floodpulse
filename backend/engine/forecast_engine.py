@@ -124,29 +124,30 @@ class DampedHoltBackend(_Backend):
     GRID = [(a, b, phi) for a in (0.1, 0.3, 0.5, 0.8) for b in (0.01, 0.05, 0.2) for phi in (0.8, 0.9, 0.98)]
 
     def forecast(self, series: np.ndarray, horizon: int) -> ForecastOutput:
-        n = series.shape[0]
-        point, lo, hi = np.zeros((n, horizon)), np.zeros((n, horizon)), np.zeros((n, horizon))
+        # vectorized over series; loops only over grid × time
+        Y = np.atleast_2d(series).astype(float)
+        n, T = Y.shape
         steps = np.arange(1, horizon + 1)
-        for i, y in enumerate(series):
-            best = None
-            for a, b, phi in self.GRID:
-                lvl, tr, sse = y[0], (y[1] - y[0]) if len(y) > 1 else 0.0, 0.0
-                for t in range(1, len(y)):
-                    pred = lvl + phi * tr
-                    err = y[t] - pred
-                    sse += err * err
-                    new_lvl = a * y[t] + (1 - a) * (lvl + phi * tr)
-                    tr = b * (new_lvl - lvl) + (1 - b) * phi * tr
-                    lvl = new_lvl
-                if best is None or sse < best[0]:
-                    best = (sse, lvl, tr, phi)
-            sse, lvl, tr, phi = best
-            damp = np.cumsum(phi ** steps)
-            point[i] = lvl + damp * tr
-            sigma = np.sqrt(sse / max(len(y) - 2, 1))
-            band = 1.2816 * sigma * np.sqrt(steps)
-            lo[i], hi[i] = point[i] - band, point[i] + band
-        return ForecastOutput(point, lo, hi)
+        best_sse = np.full(n, np.inf)
+        best_lvl, best_tr, best_phi = np.zeros(n), np.zeros(n), np.ones(n)
+        for a, b, phi in self.GRID:
+            lvl = Y[:, 0].copy()
+            tr = (Y[:, 1] - Y[:, 0]) if T > 1 else np.zeros(n)
+            sse = np.zeros(n)
+            for t in range(1, T):
+                pred = lvl + phi * tr
+                sse += (Y[:, t] - pred) ** 2
+                new_lvl = a * Y[:, t] + (1 - a) * pred
+                tr = b * (new_lvl - lvl) + (1 - b) * phi * tr
+                lvl = new_lvl
+            better = sse < best_sse
+            best_sse[better], best_lvl[better], best_tr[better], best_phi[better] = (
+                sse[better], lvl[better], tr[better], phi)
+        damp = np.cumsum(best_phi[:, None] ** steps[None, :], axis=1)
+        point = best_lvl[:, None] + damp * best_tr[:, None]
+        sigma = np.sqrt(best_sse / max(T - 2, 1))
+        band = 1.2816 * sigma[:, None] * np.sqrt(steps)[None, :]
+        return ForecastOutput(point, point - band, point + band)
 
 
 _CANDIDATES = {

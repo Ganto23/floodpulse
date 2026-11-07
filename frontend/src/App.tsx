@@ -5,7 +5,7 @@ import TimelineScrubber from "./components/TimelineScrubber";
 import TelemetrySidebar from "./components/TelemetrySidebar";
 import SignalsPanel from "./components/SignalsPanel";
 import { api } from "./lib/api";
-import type { Infrastructure, SpatialFrame, StatusResponse, TimelineResponse } from "./lib/types";
+import type { BacktestResponse, Infrastructure, SpatialFrame, StatusResponse, TimelineResponse } from "./lib/types";
 
 const PLAY_MS = 450;
 
@@ -19,6 +19,7 @@ export default function App() {
   const [metric, setMetric] = useState<Metric>("denoised");
   const [toggles, setToggles] = useState<LayerToggles>({ extrude: true, vectors: true, catchments: true, infra: true, highlights: true });
   const [err, setErr] = useState<string | null>(null);
+  const [backtest, setBacktest] = useState<BacktestResponse | null>(null);
   const cache = useRef(new Map<string, SpatialFrame>());
 
   // poll status until the pipeline is ready, then every 15 s
@@ -50,6 +51,20 @@ export default function App() {
     }).catch((e) => setErr(String(e)));
     api.infrastructure().then(setInfra).catch(() => setInfra(null));
   }, [ready, timeline]);
+
+  // backtest runs after the map is live; poll until it settles
+  useEffect(() => {
+    if (!ready) return;
+    let alive = true;
+    let timer: ReturnType<typeof setTimeout>;
+    const tick = () => api.backtest().then((b) => {
+      if (!alive) return;
+      setBacktest(b);
+      if (b.status === "pending" || b.status === "running") timer = setTimeout(tick, 2000);
+    }).catch(() => { if (alive) timer = setTimeout(tick, 4000); });
+    tick();
+    return () => { alive = false; clearTimeout(timer); };
+  }, [ready]);
 
   // fetch the frame for the current index (cached, abortable)
   useEffect(() => {
@@ -97,7 +112,7 @@ export default function App() {
       </header>
 
       <aside className="border-r border-term-line max-lg:order-3 max-lg:border-r-0">
-        <TelemetrySidebar status={status} meta={frame?.meta ?? null} />
+        <TelemetrySidebar status={status} meta={frame?.meta ?? null} backtest={backtest} />
       </aside>
 
       <main className="relative min-h-0">

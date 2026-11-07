@@ -124,3 +124,9 @@ class InfrastructureResponse(BaseModel):
     transit: list[dict[str, Any]]
     paths: list[list[list[float]]]
     source: str
+
+
+class BacktestResponse(BaseModel):
+    status: Literal["pending", "running", "ready", "error"]
+    error: str | None = None
+    result: dict[str, Any] | None = None

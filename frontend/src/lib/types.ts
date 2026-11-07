@@ -127,3 +127,39 @@ export interface Infrastructure {
   paths: [number, number][][];
   source: string;
 }
+
+export type BacktestModel = "urbanpulse" | "no_denoise" | "persistence" | "hist_mean" | "seasonal" | "zero";
+
+export interface BacktestMetrics {
+  wape: number;
+  share_err: number | null;
+  mae: number | null;
+  rmse: number | null;
+  spearman: number | null;
+  precision_k: number | null;
+  volume_err: number | null;
+  origins: number;
+}
+
+export interface BacktestResult {
+  freq: string;
+  horizon_steps: number;
+  horizon_minutes: number;
+  top_k: number;
+  cells: number;
+  origins: number;
+  excluded_origins: number;
+  min_window_events: number;
+  window: [string, string];
+  forecaster: string;
+  labels: Record<BacktestModel, string>;
+  summary: Partial<Record<BacktestModel, BacktestMetrics>>;
+  skill: Record<string, number | null>;
+  elapsed_s: number;
+}
+
+export interface BacktestResponse {
+  status: "pending" | "running" | "ready" | "error";
+  error: string | null;
+  result: BacktestResult | null;
+}
