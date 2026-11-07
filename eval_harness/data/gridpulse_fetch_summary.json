@@ -1,0 +1,25 @@
+{
+ "hours": 7344,
+ "coverage": {
+  "indo": 1.0,
+  "ndf_da": 1.0,
+  "ndf_l1": 1.0,
+  "ndf_l3": 1.0,
+  "ndf_l6": 1.0,
+  "temperature_2m": 1.0,
+  "cloud_cover": 1.0,
+  "shortwave_radiation": 1.0,
+  "wind_speed_10m": 1.0,
+  "fc_temperature_2m": 1.0,
+  "fc_cloud_cover": 1.0,
+  "fc_shortwave_radiation": 0.9813,
+  "fc_wind_speed_10m": 1.0,
+  "residual": 1.0
+ },
+ "ndf_publications": 14778,
+ "da_lead_hours": [
+  14.0,
+  37.5
+ ],
+ "seconds": 83.9
+}
