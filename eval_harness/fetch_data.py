@@ -26,10 +26,11 @@ START, END = "2023-01-01", "2024-12-31"
 ROOT = Path(__file__).parent
 DATA, CACHE = ROOT / "data", ROOT / "data" / "raw_cache"
 UA = {"User-Agent": "eval-harness/0.1 (hackathon research)"}
+PACE_S = 0.4   # be polite to public APIs (EA gateway throttles bursts)
 
 
 # --------------------------------------------------------------------------- #
-def get_json(url: str, params: dict | None = None, retries: int = 4, timeout: int = 120):
+def get_json(url: str, params: dict | None = None, retries: int = 6, timeout: int = 180):
     key = hashlib.sha256((url + json.dumps(params, sort_keys=True)).encode()).hexdigest()[:24]
     path = CACHE / f"{key}.json"
     if path.exists():
@@ -37,9 +38,12 @@ def get_json(url: str, params: dict | None = None, retries: int = 4, timeout: in
     last = None
     for attempt in range(retries):
         try:
+            time.sleep(PACE_S)
             r = requests.get(url, params=params, headers=UA, timeout=timeout)
             if r.status_code == 429 or r.status_code >= 500:
                 raise requests.HTTPError(f"HTTP {r.status_code}")
+            if r.status_code == 403 and "Application-Gateway" in r.text:
+                raise requests.HTTPError("HTTP 403 gateway throttle")   # transient: back off and retry
             if 400 <= r.status_code < 500:   # client error: retrying won't help
                 raise RuntimeError(f"HTTP {r.status_code}: {r.text[:200]}")
             r.raise_for_status()

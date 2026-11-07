@@ -18,7 +18,7 @@
       "fc_precipitation": 0.454,
       "fc_temperature_2m": 0.454
     },
-    "seconds": 99.1
+    "seconds": 0.5
   },
   "grid": {
     "source_y": "Elexon BMRS INDO (initial national demand outturn)",
@@ -38,7 +38,7 @@
       "fc_shortwave_radiation": 0.411,
       "fc_wind_speed_10m": 0.454
     },
-    "seconds": 2.1
+    "seconds": 0.7
   },
   "air": {
     "source_y": "LAQN MY1 NO2",
@@ -59,6 +59,6 @@
       "fc_temperature_2m": 0.454,
       "fc_precipitation": 0.454
     },
-    "seconds": 1.7
+    "seconds": 0.8
   }
 }

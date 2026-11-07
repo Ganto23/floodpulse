@@ -1,0 +1,312 @@
+{
+ "calder_mytholmroyd": {
+  "slug": "calder_mytholmroyd",
+  "river": "River Calder",
+  "label": "Mytholmroyd",
+  "measure": "8a2ef48d-ddc5-4643-a1cf-2da54a045d8e_F1204-level-i-900-m-qualified",
+  "lat": 53.73084,
+  "lon": -1.983888,
+  "level_readings": 104198,
+  "y_coverage": 0.557,
+  "ea_rain_gauges": [
+   {
+    "gauge": "Halifax Ogden",
+    "km": 7.0
+   },
+   {
+    "gauge": "Thornton",
+    "km": 8.3
+   },
+   {
+    "gauge": "Gorple",
+    "km": 8.4
+   }
+  ],
+  "ea_rain_coverage": 0.9861,
+  "fc_coverage": 0.1704,
+  "level_p50_p99_max": [
+   1.273,
+   2.318,
+   4.142
+  ]
+ },
+ "cragg_dauber_bridge": {
+  "slug": "cragg_dauber_bridge",
+  "river": "Cragg Brook",
+  "label": "Mytholmroyd Dauber Bridge",
+  "measure": "9129bb7b-b639-4dac-83c4-2c6d3265ac21-level-i-900-m-qualified",
+  "lat": 53.722779,
+  "lon": -1.989756,
+  "level_readings": 186134,
+  "y_coverage": 0.9949,
+  "ea_rain_gauges": [
+   {
+    "gauge": "Halifax Ogden",
+    "km": 7.9
+   },
+   {
+    "gauge": "Blackstone Edge No 2",
+    "km": 8.3
+   },
+   {
+    "gauge": "Ringstone",
+    "km": 8.5
+   }
+  ],
+  "ea_rain_coverage": 1.0,
+  "fc_coverage": 0.1704,
+  "level_p50_p99_max": [
+   0.152,
+   0.494,
+   0.977
+  ]
+ },
+ "aire_armley": {
+  "slug": "aire_armley",
+  "river": "River Aire",
+  "label": "Armley (Leeds)",
+  "measure": "655a16a0-8498-4b83-a8f6-6816952b2262-level-i-900-m-qualified",
+  "lat": 53.801967,
+  "lon": -1.575189,
+  "level_readings": 187100,
+  "y_coverage": 1.0,
+  "ea_rain_gauges": [
+   {
+    "gauge": "Headingley",
+    "km": 3.5
+   },
+   {
+    "gauge": "Farnley Hall",
+    "km": 3.8
+   },
+   {
+    "gauge": "Knostrop",
+    "km": 5.1
+   }
+  ],
+  "ea_rain_coverage": 0.8666,
+  "fc_coverage": 0.1704,
+  "level_p50_p99_max": [
+   0.56,
+   2.514,
+   4.131
+  ]
+ },
+ "calder_whalley": {
+  "slug": "calder_whalley",
+  "river": "River Calder (Lancs)",
+  "label": "Whalley Weir",
+  "measure": "b17f0895-5a5d-442c-bbad-fcf3280aae2f-level-i-900-m-qualified",
+  "lat": 53.820037,
+  "lon": -2.412708,
+  "level_readings": 172877,
+  "y_coverage": 0.924,
+  "ea_rain_gauges": [
+   {
+    "gauge": "Great Harwood",
+    "km": 3.4
+   },
+   {
+    "gauge": "Churn Clough",
+    "km": 6.0
+   },
+   {
+    "gauge": "Mearley Hall",
+    "km": 6.2
+   }
+  ],
+  "ea_rain_coverage": 1.0,
+  "fc_coverage": 0.1704,
+  "level_p50_p99_max": [
+   0.513,
+   2.055,
+   4.369
+  ]
+ },
+ "eden_sheepmount": {
+  "slug": "eden_sheepmount",
+  "river": "River Eden",
+  "label": "Sheepmount (Carlisle)",
+  "measure": "078cbfd9-31ae-46f4-bbcc-0dbdaa191cd3-level-i-900-m-qualified",
+  "lat": 54.905047,
+  "lon": -2.951874,
+  "level_readings": 181879,
+  "y_coverage": 0.9721,
+  "ea_rain_gauges": [
+   {
+    "gauge": "Willow Holme",
+    "km": 0.6
+   },
+   {
+    "gauge": "Cumwhinton",
+    "km": 8.4
+   },
+   {
+    "gauge": "Thursby",
+    "km": 9.9
+   }
+  ],
+  "ea_rain_coverage": 1.0,
+  "fc_coverage": 0.1704,
+  "level_p50_p99_max": [
+   0.996,
+   3.445,
+   6.024
+  ]
+ },
+ "greta_low_briery": {
+  "slug": "greta_low_briery",
+  "river": "River Greta",
+  "label": "Low Briery (Keswick)",
+  "measure": "94de4171-c8ca-4e4c-9897-9fe4a6576582-level-i-900-m-qualified",
+  "lat": 54.608017,
+  "lon": -3.107571,
+  "level_readings": 41778,
+  "y_coverage": 0.2233,
+  "ea_rain_gauges": [
+   {
+    "gauge": "Keswick",
+    "km": 3.2
+   },
+   {
+    "gauge": "Thirlmere  St Johns Beck",
+    "km": 5.5
+   },
+   {
+    "gauge": "Dale Head",
+    "km": 7.2
+   }
+  ],
+  "ea_rain_coverage": 0.9975,
+  "fc_coverage": 0.1704,
+  "level_p50_p99_max": [
+   0.995,
+   1.657,
+   2.339
+  ]
+ },
+ "wharfe_otley": {
+  "slug": "wharfe_otley",
+  "river": "River Wharfe",
+  "label": "Otley",
+  "measure": "49076770-98e9-47b2-89b0-aa90d60ecdc1-level-i-900-m-qualified",
+  "lat": 53.90827,
+  "lon": -1.694684,
+  "level_readings": 187061,
+  "y_coverage": 0.9998,
+  "ea_rain_gauges": [
+   {
+    "gauge": "Scargill",
+    "km": 8.4
+   },
+   {
+    "gauge": "Headingley",
+    "km": 10.9
+   },
+   {
+    "gauge": "Eccup",
+    "km": 11.2
+   }
+  ],
+  "ea_rain_coverage": 0.9333,
+  "fc_coverage": 0.1704,
+  "level_p50_p99_max": [
+   0.406,
+   1.011,
+   1.919
+  ]
+ },
+ "ribble_samlesbury": {
+  "slug": "ribble_samlesbury",
+  "river": "River Ribble",
+  "label": "Samlesbury",
+  "measure": "6e4d9ef9-131a-4712-895e-52a05dc290e9-level-i-900-m-qualified",
+  "lat": 53.768364,
+  "lon": -2.624704,
+  "level_readings": 174027,
+  "y_coverage": 0.9301,
+  "ea_rain_gauges": [
+   {
+    "gauge": "Haighton",
+    "km": 5.0
+   },
+   {
+    "gauge": "Moor Park",
+    "km": 5.3
+   },
+   {
+    "gauge": "Longridge Spade Mill",
+    "km": 7.5
+   }
+  ],
+  "ea_rain_coverage": 1.0,
+  "fc_coverage": 0.1704,
+  "level_p50_p99_max": [
+   1.207,
+   3.566,
+   5.826
+  ]
+ },
+ "kent_victoria_bridge": {
+  "slug": "kent_victoria_bridge",
+  "river": "River Kent",
+  "label": "Victoria Bridge (Kendal)",
+  "measure": "ad86da06-7fdf-4368-9662-cda79343d742-level-i-900-m-qualified",
+  "lat": 54.330846,
+  "lon": -2.74283,
+  "level_readings": 187104,
+  "y_coverage": 1.0,
+  "ea_rain_gauges": [
+   {
+    "gauge": "Fisher Tarn",
+    "km": 3.1
+   },
+   {
+    "gauge": "Watchgate",
+    "km": 5.1
+   },
+   {
+    "gauge": "Levens  Bridge End",
+    "km": 8.7
+   }
+  ],
+  "ea_rain_coverage": 0.9982,
+  "fc_coverage": 0.1704,
+  "level_p50_p99_max": [
+   1.326,
+   2.047,
+   2.931
+  ]
+ },
+ "derwent_ouse_bridge": {
+  "slug": "derwent_ouse_bridge",
+  "river": "River Derwent (Cumbria)",
+  "label": "Ouse Bridge",
+  "measure": "6152bfd2-a1e8-408c-abd4-076bee104444-level-i-900-m-qualified",
+  "lat": 54.677982,
+  "lon": -3.244624,
+  "level_readings": 187104,
+  "y_coverage": 1.0,
+  "ea_rain_gauges": [
+   {
+    "gauge": "Sunderland",
+    "km": 3.5
+   },
+   {
+    "gauge": "Keswick",
+    "km": 9.1
+   },
+   {
+    "gauge": "Quarry Hill Filter",
+    "km": 9.3
+   }
+  ],
+  "ea_rain_coverage": 1.0,
+  "fc_coverage": 0.1704,
+  "level_p50_p99_max": [
+   0.921,
+   2.355,
+   2.823
+  ]
+ }
+}

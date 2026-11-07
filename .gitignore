@@ -12,3 +12,8 @@ data/raw/*
 frontend/tsconfig.tsbuildinfo
 eval_harness/.venv/
 eval_harness/data/raw_cache/
+# FloodPulse: large re-fetchable data (rebuild with multi_river_fetch.py / elevation_features.py)
+eval_harness/data/rivers/*.csv
+eval_harness/data/rivers/terrarium/
+eval_harness/data/flood_*.csv
+eval_harness/data/gridpulse.csv

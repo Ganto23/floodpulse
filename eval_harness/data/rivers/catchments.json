@@ -1,0 +1,252 @@
+{
+ "calder_mytholmroyd": {
+  "slug": "calder_mytholmroyd",
+  "river": "River Calder",
+  "grid": {
+   "n": 121,
+   "cell_m": 318,
+   "half_width_km": 19.1
+  },
+  "dem_area_km2": 144.2,
+  "nrfa_area_km2": 141.87,
+  "area_ratio_dem_vs_nrfa": 1.016,
+  "truncated_by_grid": false,
+  "longest_flow_path_km": 15.8,
+  "relief_m": 362.0,
+  "outlet_elev_m": 110.0,
+  "mean_elev_m": 326.0,
+  "mean_slope_deg": 5.76,
+  "centroid_distance_km": 6.5,
+  "kirpich_tc_h": 2.37,
+  "nrfa": {
+   "dpsbar": 147.9,
+   "bfihost": 0.361,
+   "saar-1961-1990": 1360,
+   "propwet": 0.57
+  }
+ },
+ "cragg_dauber_bridge": {
+  "slug": "cragg_dauber_bridge",
+  "river": "Cragg Brook",
+  "grid": {
+   "n": 121,
+   "cell_m": 167,
+   "half_width_km": 10.0
+  },
+  "dem_area_km2": 156.2,
+  "nrfa_area_km2": null,
+  "area_ratio_dem_vs_nrfa": null,
+  "truncated_by_grid": true,
+  "longest_flow_path_km": 19.2,
+  "relief_m": 383.0,
+  "outlet_elev_m": 88.0,
+  "mean_elev_m": 314.0,
+  "mean_slope_deg": 6.87,
+  "centroid_distance_km": 4.8,
+  "kirpich_tc_h": 2.92,
+  "nrfa": null
+ },
+ "aire_armley": {
+  "slug": "aire_armley",
+  "river": "River Aire",
+  "grid": {
+   "n": 121,
+   "cell_m": 701,
+   "half_width_km": 42.1
+  },
+  "dem_area_km2": 691.4,
+  "nrfa_area_km2": 691.5,
+  "area_ratio_dem_vs_nrfa": 1.0,
+  "truncated_by_grid": true,
+  "longest_flow_path_km": 66.6,
+  "relief_m": 476.0,
+  "outlet_elev_m": 43.0,
+  "mean_elev_m": 223.0,
+  "mean_slope_deg": 2.93,
+  "centroid_distance_km": 27.9,
+  "kirpich_tc_h": 11.28,
+  "nrfa": {
+   "dpsbar": 95.2,
+   "bfihost": 0.408,
+   "saar-1961-1990": 1048,
+   "propwet": 0.49
+  }
+ },
+ "calder_whalley": {
+  "slug": "calder_whalley",
+  "river": "River Calder (Lancs)",
+  "grid": {
+   "n": 121,
+   "cell_m": 474,
+   "half_width_km": 28.4
+  },
+  "dem_area_km2": 316.8,
+  "nrfa_area_km2": 316.0,
+  "area_ratio_dem_vs_nrfa": 1.003,
+  "truncated_by_grid": false,
+  "longest_flow_path_km": 31.7,
+  "relief_m": 483.0,
+  "outlet_elev_m": 48.0,
+  "mean_elev_m": 223.0,
+  "mean_slope_deg": 3.39,
+  "centroid_distance_km": 10.3,
+  "kirpich_tc_h": 4.75,
+  "nrfa": {
+   "dpsbar": 94.3,
+   "bfihost": 0.395,
+   "saar-1961-1990": 1232,
+   "propwet": 0.55
+  }
+ },
+ "eden_sheepmount": {
+  "slug": "eden_sheepmount",
+  "river": "River Eden",
+  "grid": {
+   "n": 121,
+   "cell_m": 1275,
+   "half_width_km": 76.5
+  },
+  "dem_area_km2": 2190.2,
+  "nrfa_area_km2": 2286.5,
+  "area_ratio_dem_vs_nrfa": 0.958,
+  "truncated_by_grid": false,
+  "longest_flow_path_km": 92.5,
+  "relief_m": 780.0,
+  "outlet_elev_m": 15.0,
+  "mean_elev_m": 252.0,
+  "mean_slope_deg": 2.35,
+  "centroid_distance_km": 31.8,
+  "kirpich_tc_h": 13.62,
+  "nrfa": {
+   "dpsbar": 103.3,
+   "bfihost": 0.489,
+   "saar-1961-1990": 1182,
+   "propwet": 0.64
+  }
+ },
+ "greta_low_briery": {
+  "slug": "greta_low_briery",
+  "river": "River Greta",
+  "grid": {
+   "n": 121,
+   "cell_m": 322,
+   "half_width_km": 19.3
+  },
+  "dem_area_km2": 139.9,
+  "nrfa_area_km2": 145.6,
+  "area_ratio_dem_vs_nrfa": 0.961,
+  "truncated_by_grid": false,
+  "longest_flow_path_km": 22.6,
+  "relief_m": 804.0,
+  "outlet_elev_m": 83.0,
+  "mean_elev_m": 363.0,
+  "mean_slope_deg": 9.72,
+  "centroid_distance_km": 4.8,
+  "kirpich_tc_h": 2.64,
+  "nrfa": {
+   "dpsbar": 227.1,
+   "bfihost": 0.399,
+   "saar-1961-1990": 2025,
+   "propwet": 0.63
+  }
+ },
+ "wharfe_otley": {
+  "slug": "wharfe_otley",
+  "river": "River Wharfe",
+  "grid": {
+   "n": 121,
+   "cell_m": 653,
+   "half_width_km": 39.2
+  },
+  "dem_area_km2": 539.7,
+  "nrfa_area_km2": null,
+  "area_ratio_dem_vs_nrfa": null,
+  "truncated_by_grid": false,
+  "longest_flow_path_km": 66.3,
+  "relief_m": 640.0,
+  "outlet_elev_m": 52.0,
+  "mean_elev_m": 331.0,
+  "mean_slope_deg": 4.7,
+  "centroid_distance_km": 26.1,
+  "kirpich_tc_h": 10.01,
+  "nrfa": null
+ },
+ "ribble_samlesbury": {
+  "slug": "ribble_samlesbury",
+  "river": "River Ribble",
+  "grid": {
+   "n": 121,
+   "cell_m": 902,
+   "half_width_km": 54.1
+  },
+  "dem_area_km2": 946.1,
+  "nrfa_area_km2": 1145.0,
+  "area_ratio_dem_vs_nrfa": 0.826,
+  "truncated_by_grid": false,
+  "longest_flow_path_km": 63.5,
+  "relief_m": 563.0,
+  "outlet_elev_m": 12.0,
+  "mean_elev_m": 191.0,
+  "mean_slope_deg": 2.35,
+  "centroid_distance_km": 20.8,
+  "kirpich_tc_h": 10.02,
+  "nrfa": {
+   "dpsbar": 94.7,
+   "bfihost": 0.371,
+   "saar-1961-1990": 1350,
+   "propwet": 0.56
+  }
+ },
+ "kent_victoria_bridge": {
+  "slug": "kent_victoria_bridge",
+  "river": "River Kent",
+  "grid": {
+   "n": 121,
+   "cell_m": 361,
+   "half_width_km": 21.6
+  },
+  "dem_area_km2": 186.4,
+  "nrfa_area_km2": 183.0,
+  "area_ratio_dem_vs_nrfa": 1.018,
+  "truncated_by_grid": false,
+  "longest_flow_path_km": 22.1,
+  "relief_m": 730.0,
+  "outlet_elev_m": 49.0,
+  "mean_elev_m": 259.0,
+  "mean_slope_deg": 6.56,
+  "centroid_distance_km": 7.5,
+  "kirpich_tc_h": 2.68,
+  "nrfa": {
+   "dpsbar": 165.5,
+   "bfihost": 0.496,
+   "saar-1961-1990": 1787,
+   "propwet": 0.71
+  }
+ },
+ "derwent_ouse_bridge": {
+  "slug": "derwent_ouse_bridge",
+  "river": "River Derwent (Cumbria)",
+  "grid": {
+   "n": 121,
+   "cell_m": 508,
+   "half_width_km": 30.5
+  },
+  "dem_area_km2": 359.6,
+  "nrfa_area_km2": 363.0,
+  "area_ratio_dem_vs_nrfa": 0.991,
+  "truncated_by_grid": false,
+  "longest_flow_path_km": 34.3,
+  "relief_m": 820.0,
+  "outlet_elev_m": 71.0,
+  "mean_elev_m": 333.0,
+  "mean_slope_deg": 9.06,
+  "centroid_distance_km": 12.6,
+  "kirpich_tc_h": 4.26,
+  "nrfa": {
+   "dpsbar": 247.4,
+   "bfihost": 0.439,
+   "saar-1961-1990": 2064,
+   "propwet": 0.63
+  }
+ }
+}
