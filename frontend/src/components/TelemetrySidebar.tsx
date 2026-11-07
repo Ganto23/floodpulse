@@ -1,6 +1,7 @@
 import { Activity, CloudRain, Cpu, Network, Radio } from "lucide-react";
-import type { BacktestResponse, FrameMeta, SourceState, StatusResponse } from "../lib/types";
+import type { BacktestResponse, StudyResponse, FrameMeta, SourceState, StatusResponse } from "../lib/types";
 import BacktestPanel from "./BacktestPanel";
+import StudyPanel from "./StudyPanel";
 
 const ICONS: Record<string, typeof Activity> = { telemetry: Radio, weather: CloudRain, osm: Network, forecast: Cpu };
 const STATE_CLS: Record<SourceState, string> = {
@@ -10,7 +11,7 @@ const STATE_CLS: Record<SourceState, string> = {
   LOADING: "text-term-dim blink",
 };
 
-export default function TelemetrySidebar({ status, meta, backtest }: { status: StatusResponse | null; meta: FrameMeta | null; backtest: BacktestResponse | null }) {
+export default function TelemetrySidebar({ status, meta, backtest, study }: { status: StatusResponse | null; meta: FrameMeta | null; backtest: BacktestResponse | null; study: StudyResponse | null }) {
   if (!status) return <div className="p-3 text-term-dim blink">connecting to backend…</div>;
   const nowcast = status.tensor.nowcast;
   const longrange = status.tensor.longrange;
@@ -37,6 +38,7 @@ export default function TelemetrySidebar({ status, meta, backtest }: { status: S
         )}
       </Section>
 
+      {status.pipeline === "ready" && <StudyPanel data={study} />}
       {status.pipeline === "ready" && <BacktestPanel data={backtest} />}
 
       {meta?.weather && (

@@ -127,6 +127,8 @@ TARGET_BBOX: tuple[float, float, float, float] = _env(
 )
 # Overpass refuses huge boxes; cap the area we will ever query (degrees^2).
 MAX_OVERPASS_AREA: float = _env("MAX_OVERPASS_AREA", 0.01)
+# Infrastructure is fetched in tiles of <= MAX_OVERPASS_AREA covering the whole study area.
+MAX_OVERPASS_TILES: int = _env("MAX_OVERPASS_TILES", 40)
 
 # Multi-city datasets (e.g. Kaggle Predict'em All): pin a region by its `city` column.
 # NB: in Predict'em All `city` is the *timezone* region ("New_York" spans the whole US

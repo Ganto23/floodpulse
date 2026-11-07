@@ -163,3 +163,20 @@ export interface BacktestResponse {
   error: string | null;
   result: BacktestResult | null;
 }
+
+export interface StudyModelSummary { pearson_log: number | null; spearman_active: number | null; wape: number; windows: number }
+export interface StudyResult {
+  protocol: { holdout_hours: number; holdout_start: string; end: string; selection_metric: string; candidates: string[]; min_window_events: number; forecaster: string };
+  dev_grid: { res: number; window_min: number; label: string; cells: number; windows: number; excluded: number; summary: Record<string, StudyModelSummary> }[];
+  selected: { res: number; window_min: number; freq: string; label: string; cells: number };
+  holdout: {
+    forecast: { windows: number; excluded: number; summary: Record<string, StudyModelSummary> };
+    spatial_persistence: { cells: number; active_cells: number; pearson_log: number | null; spearman_active: number | null; top_decile_retention: number | null; dev_hours: number; holdout_hours: number };
+    osm: { available: false; reason: string } | {
+      available: true; covered_cells: number; total_cells: number;
+      per_feature: Record<string, { pearson_dev: number | null; pearson_holdout: number | null }>;
+      ols: { r2_dev_in_sample: number | null; r2_dev_spatial_block_cv: number | null; cv_blocks: number; r2_holdout: number | null; pearson_holdout: number | null };
+    };
+  };
+}
+export interface StudyResponse { status: "pending" | "running" | "ready" | "error"; error: string | null; result: StudyResult | null }

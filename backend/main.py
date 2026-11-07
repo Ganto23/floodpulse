@@ -147,6 +147,13 @@ def backtest() -> BacktestResponse:
     return BacktestResponse(status=st.backtest_status, error=st.backtest_error, result=st.backtest)
 
 
+@app.get("/api/evaluation", response_model=BacktestResponse)
+def evaluation() -> BacktestResponse:
+    """Pre-registered dev→holdout study: forecast skill, spatial persistence, OSM correlations."""
+    st = pipeline.state
+    return BacktestResponse(status=st.study_status, error=st.study_error, result=st.study)
+
+
 @app.post("/api/refresh")
 def refresh() -> dict:
     pipeline.start_background()

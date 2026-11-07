@@ -58,6 +58,7 @@ Every setting can be overridden with an `URBANPULSE_<NAME>` environment variable
 | `GET /api/status` | Source health (rows ingested, Open-Meteo rows, OSM node count, forecaster backend), tensor stats, pipeline log |
 | `GET /api/timeline` | Frame list: monthly history → nowcast history → nowcast forecast → monthly forecast to 2030 |
 | `GET /api/spatial-frame?timestamp=` | H3 GeoJSON with realized / denoised / forecast (+ 80% band) / ΔS/Δt / signal per cell, plus lures, momentum vectors, catchments and signal cards |
+| `GET /api/evaluation` | Pre-registered dev→holdout study: forecast skill at the chosen scale, spatial persistence, OSM→activity correlations |
 | `GET /api/backtest` | Rolling-origin out-of-sample evaluation: UrbanPulse vs. no-denoise ablation, persistence, historical mean, t−24h, zero floor |
 | `GET /api/infrastructure` | OSM transit nodes and pedestrian polylines for the map context layer |
 | `POST /api/refresh` | Re-run the pipeline |
@@ -98,6 +99,26 @@ UrbanPulse has 16% lower WAPE than persistence and 14% lower than the same forec
 per-cell 15-min counts are so sparse that no model beats predicting zero on WAPE. On *where* activity lands
 (share error, P@K), persistence and the raw forecaster do as well or better. Re-run after enabling TimesFM.
 
+## Holdout correlation study (`engine/evaluation.py`)
+
+The protocol was fixed before any results were seen. The **final 48 h** are held out. Scale and metric are chosen
+on the earlier dev period only, from business-motivated candidates: H3 res 9/8/7 (block, neighbourhood or courier
+zone) × 90 min, 3 h or 6 h decision windows. The selection rule is the highest dev Pearson(log1p forecast,
+log1p actual). The holdout is then scored once. Spearman only counts cells active during *training*, because
+conditioning on "active in either period" is Berkson-biased.
+
+Dev selected **res 7 (~5 km² courier zones) × 6 h windows**. Holdout results (Prague, damped-Holt forecaster):
+
+| Test | Result |
+|---|---|
+| A. Forecast, 7 windows: Pearson(log) / Spearman / WAPE | UrbanPulse 0.34 / 0.24 / **0.93** · no-denoise 0.39 / 0.23 / 1.02 · persistence **0.47 / 0.41** / 1.34 · hist. mean 0.38 / 0.32 / 1.63 |
+| B. Spatial persistence (dev rate → holdout rate per zone) | Pearson(log) **0.65**, Spearman 0.45, 50% of top-decile zones stay top-decile |
+| C. OSM → activity, 93 of 101 zones covered | transit r = **0.52**, pedestrian network r = 0.45, buildings r = 0.26 (holdout). OLS fit on dev: R² 0.25 in-sample, 0.16 spatial-block CV, 0.14 holdout |
+
+Reading these results: activity is predictable **in space** (B), and open infrastructure data explains a real share of
+*where* players were (C). Only UrbanPulse beats the predict-zero floor on volume (WAPE < 1). For **ranking zones over
+the next 6 h**, though, simple persistence wins. A has only 7 holdout windows, so treat its differences as indicative.
+
 ## Notes on honesty (for judges)
 
 - The status panel shows exactly which source fed each layer: `ONLINE`, `DEGRADED` (fallback in use) or `OFFLINE`.
@@ -105,5 +126,7 @@ per-cell 15-min counts are so sparse that no model beats predicting zero on WAPE
   coarsens automatically (e.g. 15 min → 3 h) when the stream is too sparse, and the pipeline log records the change.
 - The Kaggle dataset covers only 6 days. The multi-year regime stays off in Pokémon mode, so the 2026–2030 view
   is only available in `osm` or `housing` mode.
+- OSM infrastructure is fetched in Overpass tiles that cover the whole study area (21 tiles for Prague; the first
+  run takes ~10 min, then it's cached). Coverage checks use only the tiles that actually loaded.
 - With the OSM fallback, timestamps are *last-edit* times, so recent months are over-represented. Use a real
   scanner dump to get true foot-traffic dynamics.

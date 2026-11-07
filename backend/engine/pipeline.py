@@ -26,6 +26,7 @@ import config
 from data import h3_grid
 from engine import signals
 from engine.backtest import run_backtest
+from engine.evaluation import run_study
 from engine.forecast_engine import ForecastEngine
 from engine.tensor_engine import TensorEngine, TensorResult, freq_hours, select_frequency, time_index
 from loaders import get_loader
@@ -75,6 +76,9 @@ class PipelineState:
     backtest_status: str = "pending"  # pending | running | ready | error
     backtest: dict | None = None
     backtest_error: str | None = None
+    study_status: str = "pending"
+    study: dict | None = None
+    study_error: str | None = None
 
 
 class UrbanPulsePipeline:
@@ -109,6 +113,7 @@ class UrbanPulsePipeline:
             st.finished_at = time.time()
         if st.status == "ready":   # map is live; backtest runs after, off the critical path
             self._run_backtest(st)
+            self._run_study(st)
             self._lock.release()
 
     def _run(self, st: PipelineState) -> None:
@@ -191,6 +196,20 @@ class UrbanPulsePipeline:
         except Exception as exc:
             log.exception("backtest failed")
             st.backtest_status, st.backtest_error = "error", f"{type(exc).__name__}: {exc}"
+
+    def _run_study(self, st: PipelineState) -> None:
+        reg = st.regimes.get("nowcast")
+        if reg is None:
+            return
+        st.study_status = "running"
+        try:
+            st.study = run_study(events=st.events, infra=st.infra, weather=reg.weather.frame,
+                                 highlight_category=self.highlight_category,
+                                 forecaster=self.forecaster, tensor_engine=self.tensor_engine)
+            st.study_status = "ready"
+        except Exception as exc:
+            log.exception("study failed")
+            st.study_status, st.study_error = "error", f"{type(exc).__name__}: {exc}"
 
     # ------------------------------------------------------------------ #
     def _focus(self, events: pd.DataFrame, st: PipelineState) -> pd.DataFrame:

@@ -22,7 +22,7 @@ from pathlib import Path
 
 import pandas as pd
 
-from config import MAX_OVERPASS_AREA, OVERPASS_URL, RAW_DIR
+from config import MAX_OVERPASS_AREA, MAX_OVERPASS_TILES, OVERPASS_URL, RAW_DIR
 from loaders.base import BaseDataLoader, LoaderError
 from loaders.http import cached_request
 
@@ -80,6 +80,12 @@ class OSMInfrastructure:
     source: str = "none"
     online: bool = False
     notes: list[str] = field(default_factory=list)
+    bbox: tuple[float, float, float, float] | None = None  # area actually queried (after clamp)
+    tiles: list[tuple[float, float, float, float]] = field(default_factory=list)  # tiles that loaded
+
+    def covers(self, lat: float, lon: float) -> bool:
+        boxes = self.tiles or ([self.bbox] if self.bbox else [])
+        return any(s <= lat <= n and w <= lon <= e for s, w, n, e in boxes)
 
     @property
     def node_count(self) -> int:
@@ -90,10 +96,12 @@ class OSMInfrastructureLoader:
     local_file = "osm_infrastructure.geojson"
 
     def __init__(self, bbox: BBox) -> None:
-        self.bbox, clamped = clamp_bbox(bbox)
-        self.result = OSMInfrastructure()
+        # tile the study area; only clamp if it would need more than MAX_OVERPASS_TILES tiles
+        self.bbox, clamped = clamp_bbox(bbox, MAX_OVERPASS_AREA * MAX_OVERPASS_TILES)
+        self.result = OSMInfrastructure(bbox=self.bbox)
         if clamped:
-            self.result.notes.append("bbox clamped to Overpass-safe area around data centroid")
+            self.result.notes.append(f"study area exceeds {MAX_OVERPASS_TILES} Overpass tiles; "
+                                     "infrastructure clamped around data centroid")
 
     def load(self) -> OSMInfrastructure:
         local = RAW_DIR / self.local_file
@@ -109,9 +117,40 @@ class OSMInfrastructureLoader:
             self.result.notes.append(f"load failed: {exc}")
         return self.result
 
+    def _tiles(self) -> list[BBox]:
+        s, w, n, e = self.bbox
+        side = math.sqrt(MAX_OVERPASS_AREA)
+        ny, nx = max(1, math.ceil((n - s) / side)), max(1, math.ceil((e - w) / side))
+        dy, dx = (n - s) / ny, (e - w) / nx
+        return [(s + i * dy, w + j * dx, s + (i + 1) * dy, w + (j + 1) * dx)
+                for i in range(ny) for j in range(nx)]
+
     def _from_overpass(self) -> None:
-        b = _bbox_str(self.bbox)
-        q = f"""
+        tiles = self._tiles()
+        seen: dict[tuple[str, int], dict] = {}
+        live = 0
+        for k, tile in enumerate(tiles, 1):
+            try:
+                payload, cached = overpass(self._query(tile), "overpass_infra")
+            except Exception as exc:
+                self.result.notes.append(f"tile {k}/{len(tiles)} failed: {exc}"[:200])
+                continue
+            live += not cached
+            self.result.tiles.append(tile)
+            for el in payload.get("elements", []):
+                seen[(el.get("type"), el.get("id"))] = el   # ways crossing tile edges dedupe here
+            log.info("overpass tile %d/%d: %d elements total", k, len(tiles), len(seen))
+        if not self.result.tiles:
+            raise RuntimeError("all Overpass tiles failed")
+        self.result.source = f"overpass:{'live' if live else 'cache'} ({len(self.result.tiles)}/{len(tiles)} tiles)"
+        if len(self.result.tiles) < len(tiles):
+            self.result.notes.append(f"partial OSM coverage: {len(self.result.tiles)}/{len(tiles)} tiles")
+        self._ingest_elements(list(seen.values()))
+
+    @staticmethod
+    def _query(tile: BBox) -> str:
+        b = _bbox_str(tile)
+        return f"""
         [out:json][timeout:90];
         (
           node["highway"="bus_stop"]({b});
@@ -124,9 +163,6 @@ class OSMInfrastructureLoader:
         way["building"]({b});
         out center;
         """
-        payload, cached = overpass(q, "overpass_infra")
-        self.result.source = "overpass:cache" if cached else "overpass:live"
-        self._ingest_elements(payload.get("elements", []))
 
     def _ingest_elements(self, elements: list[dict]) -> None:
         transit, foot, bld = [], [], []
