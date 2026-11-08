@@ -32,6 +32,7 @@ const PRESETS: Preset[] = [
   { id: "dec24", label: "Dec 2024 Surge", set: "2024", time: "2024-12-04 18:00:00+00:00", gauge: "calder_mytholmroyd" },
 ];
 const START = "2024-12-04 18:00:00+00:00";      // opens on a real moment: Calder normal now, alert line crossed ~23 h later
+const DEFAULT_HORIZON: Horizon = 6;             // tightest, most accurate view; reset on every gauge / preset selection
 const PLAY_MS = 1000;                           // one replay step per second
 const MERGE_H = 24;                             // flagged steps closer than this belong to the same event
 const TIER: Record<Risk, number> = { crit: 0, warn: 1, ok: 2, none: 3 };
@@ -44,13 +45,14 @@ export default function FloodPulseDashboard() {
   const [geometry, setGeometry] = useState<Record<string, Geometry>>({});
   const [selected, setSelected] = useState("calder_mytholmroyd");
   const [gaugeFile, setGaugeFile] = useState<GaugeFile | null>(null);
-  const [horizon, setHorizon] = useState<Horizon>(24);
+  const [horizon, setHorizon] = useState<Horizon>(DEFAULT_HORIZON);
   const [t, setT] = useState(0);
   const [playing, setPlaying] = useState(false);
   const [err, setErr] = useState<string | null>(null);
   const target = useRef<string | null>(START);
   const [focus, setFocus] = useState<{ slug: string; n: number } | null>(null);   // map fly-to requests
-  const pick = (slug: string) => { setSelected(slug); setFocus((f) => ({ slug, n: (f?.n ?? 0) + 1 })); };  // time to land on once a replay's status file loads
+  // selecting a gauge (card, pin or preset) flies the map there and resets to the tight 6 h view
+  const pick = (slug: string) => { setSelected(slug); setHorizon(DEFAULT_HORIZON); setFocus((f) => ({ slug, n: (f?.n ?? 0) + 1 })); };
   const variant = REPLAY[setName].variant;
 
   useEffect(() => {
