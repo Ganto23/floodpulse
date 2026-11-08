@@ -16,8 +16,8 @@ export function riskOf(g: GaugeMeta, c: StatusCell | undefined, hz: Horizon): Ri
 }
 
 export const RISK_STYLE: Record<Risk, { label: string; text: string; dot: string; rgb: [number, number, number] }> = {
-  crit: { label: "BREACH", text: "text-crit", dot: "bg-crit", rgb: [208, 59, 59] },
-  warn: { label: "ELEVATED", text: "text-warn", dot: "bg-warn", rgb: [250, 178, 25] },
+  crit: { label: "ALERT", text: "text-crit", dot: "bg-crit", rgb: [208, 59, 59] },
+  warn: { label: "WATCH", text: "text-warn", dot: "bg-warn", rgb: [250, 178, 25] },
   ok: { label: "NORMAL", text: "text-ok", dot: "bg-ok", rgb: [12, 163, 12] },
   none: { label: "NO DATA", text: "text-zinc-500", dot: "bg-zinc-600", rgb: [82, 82, 91] },
 };

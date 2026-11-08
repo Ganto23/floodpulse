@@ -20,8 +20,8 @@ export default function BasinMap({ gauges, geometry, selected, mesh, onSelect }:
   const [hover, setHover] = useState<PickingInfo<Row> | null>(null);
 
   useEffect(() => {
-    if (selected) setView((v) => ({ ...v, latitude: selected.lat, longitude: selected.lon, zoom: 9.3,
-                                    transitionDuration: 900, transitionInterpolator: new FlyToInterpolator() }));
+    if (selected) setView((v) => ({ ...v, latitude: selected.lat, longitude: selected.lon, zoom: 8.6,
+                                    transitionDuration: 1800, transitionInterpolator: new FlyToInterpolator({ speed: 0.6 }) }));
   }, [selected]);
 
   const { cells, segs, zmax } = useMemo(() => {
@@ -94,16 +94,16 @@ export default function BasinMap({ gauges, geometry, selected, mesh, onSelect }:
              style={{ left: hover.x + 12, top: hover.y + 12 }}>
           <div className="text-accent">{o.g.name}</div>
           <div className={RISK_STYLE[o.risk].text}>{RISK_STYLE[o.risk].label}</div>
-          <div className="text-zinc-400">level <span className="text-zinc-100">{m(o.obs)} m</span> · peak <span className="text-zinc-100">{m(o.peak)} m</span></div>
-          <div className="text-zinc-400">P95 {m(o.g.p95_mm)} · P99 {m(o.g.p99_mm)} m · DEM lag {o.g.dem_tc_h.toFixed(1)} h</div>
+          <div className="text-zinc-400">now <span className="text-zinc-100">{m(o.obs)} m</span> · forecast max <span className="text-zinc-100">{m(o.peak)} m</span></div>
+          <div className="text-zinc-400">watch {m(o.g.p95_mm)} · alert {m(o.g.p99_mm)} m · terrain-estimated rain travel ~{o.g.dem_tc_h.toFixed(0)} h</div>
         </div>
       )}
       <div className="pointer-events-none absolute bottom-3 left-3 border border-zinc-800 bg-zinc-950/90 px-3 py-2 text-[10px] text-zinc-400">
         {(["crit", "warn", "ok"] as const).map((k) => (
           <span key={k} className="mr-3"><span className={`mr-1 inline-block h-2 w-2 rounded-full ${RISK_STYLE[k].dot}`} />{RISK_STYLE[k].label}</span>
         ))}
-        <span className="mr-3 text-cyan-300">━ D8 channel (≥1% catchment area)</span>
-        {mesh && <span>▦ DEM mesh · selected catchment</span>}
+        <span className="mr-3 text-cyan-300">━ rivers traced from terrain</span>
+        {mesh && <span>▦ area draining to the selected gauge</span>}
       </div>
     </div>
   );

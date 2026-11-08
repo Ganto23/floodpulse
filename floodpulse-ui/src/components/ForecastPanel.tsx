@@ -1,9 +1,11 @@
 import { useEffect, useMemo, useRef, useState } from "react";
-import { Pause, Play } from "lucide-react";
+import { ChevronLeft, ChevronRight, Pause, Play } from "lucide-react";
 import { HOUR, m, pct } from "../lib/data";
 import type { GaugeFile, GaugeMeta, Horizon, Manifest, SetName, Variant } from "../lib/types";
 
 const HORIZONS: Horizon[] = [6, 12, 18, 24];
+const SET_SHORT: Record<string, string> = { "2024": "2024", ciara_dennis: "STORM CIARA · 2020", babet: "STORM BABET · 2023" };
+const VARIANT_SHORT: Record<Variant, string> = { deployed: "REAL RAIN FORECASTS", oracle: "PERFECT RAIN (BEST CASE)", past: "NO RAIN FORECAST" };
 const BACK = 72;                                   // hours of history shown left of "now"
 const C = { obs: "#3987e5", base: "#d95926", fp: "#199e70", grid: "#27272a", axis: "#71717a", warn: "#fab219", crit: "#d03b3b" };
 const parse = (s: string) => new Date(s.replace(" ", "T")).getTime();
@@ -13,6 +15,7 @@ interface Props {
   manifest: Manifest; gauge: GaugeMeta | null; file: GaugeFile | null; setName: SetName; variant: Variant;
   time: string | null; horizon: Horizon; onHorizon: (h: Horizon) => void; onSet: (s: SetName) => void;
   onVariant: (v: Variant) => void; times: string[]; t: number; onT: (i: number) => void; playing: boolean; onPlay: () => void;
+  advanced: boolean;
 }
 
 export default function ForecastPanel(p: Props) {
@@ -22,13 +25,13 @@ export default function ForecastPanel(p: Props) {
     <div className="flex h-full flex-col">
       {/* controls row (filters in one row above the chart) */}
       <div className="flex flex-wrap items-center gap-3 border-b border-zinc-800 px-3 py-1.5 text-[10px]">
-        <span className="font-bold tracking-[0.2em] text-accent">FORECAST ENVELOPE</span>
-        <Seg value={setName} options={Object.entries(manifest.sets).map(([k, v]) => [k, k === "2024" ? "2024 BACKTEST" : v.label.split(" · ")[0].toUpperCase().replace("STORM ", "STORM REPLAY · ")])}
+        <span className="font-bold tracking-[0.2em] text-accent">{gauge ? gauge.name.toUpperCase() : "FORECAST"}</span>
+        <Seg value={setName} options={Object.keys(manifest.sets).map((k) => [k, SET_SHORT[k] ?? k])}
              onChange={(v) => p.onSet(v as SetName)} />
-        <Seg value={variant} options={manifest.sets[setName].variants.map((v) => [v, manifest.variant_labels[v].toUpperCase()])}
+        <Seg value={variant} options={manifest.sets[setName].variants.map((v) => [v, VARIANT_SHORT[v]])}
              onChange={(v) => p.onVariant(v as Variant)} />
-        <Seg value={String(horizon)} options={HORIZONS.map((h) => [String(h), `+${h}H`])} onChange={(v) => p.onHorizon(Number(v) as Horizon)} />
-        {stats && (
+        {p.advanced && <Seg value={String(horizon)} options={HORIZONS.map((h) => [String(h), `+${h}H`])} onChange={(v) => p.onHorizon(Number(v) as Horizon)} />}
+        {p.advanced && stats && (
           <span className="ml-auto text-zinc-400">
             {gauge?.name} · MAE <span className="text-zinc-100">{stats.mae_mm.booster.toFixed(0)}</span> mm vs TimesFM{" "}
             <span className="text-zinc-100">{stats.mae_mm.timesfm.toFixed(0)}</span> · surge MAE{" "}
@@ -46,13 +49,15 @@ export default function ForecastPanel(p: Props) {
 
       {/* storm replay scrubber */}
       <div className="flex items-center gap-3 border-t border-zinc-800 px-3 py-1.5">
-        <button onClick={p.onPlay} className="text-accent" aria-label={p.playing ? "Pause replay" : "Play replay"}>
+        <button onClick={() => p.onT(Math.max(0, p.t - 1))} className="border border-zinc-700 p-0.5 text-zinc-300 hover:border-accent hover:text-accent" aria-label="Step back"><ChevronLeft size={14} /></button>
+        <button onClick={p.onPlay} className="border border-zinc-700 p-0.5 text-accent hover:border-accent" aria-label={p.playing ? "Pause replay" : "Play replay"}>
           {p.playing ? <Pause size={14} /> : <Play size={14} />}
         </button>
+        <button onClick={() => p.onT(Math.min(p.times.length - 1, p.t + 1))} className="border border-zinc-700 p-0.5 text-zinc-300 hover:border-accent hover:text-accent" aria-label="Step forward"><ChevronRight size={14} /></button>
         <span className="w-36 shrink-0 tabular-nums text-zinc-200">{time ? fmtShort(parse(time)) + "Z" : "—"}</span>
         <input type="range" className="scrub" min={0} max={p.times.length - 1} value={p.t}
                onChange={(e) => p.onT(Number(e.target.value))} aria-label="Replay time" />
-        <span className="shrink-0 text-[10px] text-zinc-500">{p.t + 1}/{p.times.length} · {setName === "2024" ? "3-hourly" : "hourly"} origins</span>
+        <span className="shrink-0 text-[10px] text-zinc-500">drag to move through time · {setName === "2024" ? "3 h" : "1 h"} per step</span>
       </div>
     </div>
   );
@@ -123,10 +128,10 @@ function Chart({ gauge, file, setName, variant, time, horizon }: {
 
   const rightLabels = (() => {
     const ls: { k: string; text: string; ly: number; fill: string }[] = [
-      { k: "p99", text: `P99 ${(gauge.p99_mm / 1000).toFixed(2)} m`, ly: y(gauge.p99_mm), fill: "#a1a1aa" },
-      { k: "p95", text: `P95 ${(gauge.p95_mm / 1000).toFixed(2)} m`, ly: y(gauge.p95_mm), fill: "#a1a1aa" },
+      { k: "p99", text: `alert ${(gauge.p99_mm / 1000).toFixed(2)} m`, ly: y(gauge.p99_mm), fill: "#a1a1aa" },
+      { k: "p95", text: `watch ${(gauge.p95_mm / 1000).toFixed(2)} m`, ly: y(gauge.p95_mm), fill: "#a1a1aa" },
     ];
-    for (const [k, text] of [["fp", "FloodPulse"], ["base", "TimesFM"]] as const) {
+    for (const [k, text] of [["fp", "FloodPulse"], ["base", "old model"]] as const) {
       const i = last(k);
       const v = i >= 0 ? model.rows[i][k] : null;
       if (v != null) ls.push({ k, text, ly: y(v), fill: "#e4e4e7" });
@@ -169,8 +174,8 @@ function Chart({ gauge, file, setName, variant, time, horizon }: {
         <path d={path("fp")} fill="none" stroke={C.fp} strokeWidth={2} />
         {/* right-margin labels (line ends + alert levels), de-collided so none overlap */}
         {rightLabels.map((l) => <text key={l.k} x={M.l + iw + 6} y={l.ly + 3} fontSize={10} fill={l.fill}>{l.text}</text>)}
-        <text x={x(nowI) - 6} y={M.t + 10} textAnchor="end" fontSize={10} fill="#a1a1aa">observed ←</text>
-        <text x={x(nowI) + 6} y={M.t + 10} fontSize={10} fill="#a1a1aa">→ forecast (dotted = realised outcome)</text>
+        <text x={x(nowI) - 6} y={M.t + 10} textAnchor="end" fontSize={10} fill="#a1a1aa">← what happened before</text>
+        <text x={x(nowI) + 6} y={M.t + 10} fontSize={10} fill="#a1a1aa">forecast made here → (dotted blue = what really happened)</text>
         {hover && <line x1={x(hx!)} x2={x(hx!)} y1={M.t} y2={M.t + ih} stroke="#e4e4e7" strokeWidth={1} opacity={0.4} />}
         {!model.hasFc && <text x={M.l + iw / 2} y={M.t + ih / 2} textAnchor="middle" fontSize={11} fill={C.axis}>no forecast issued for this gauge at this time</text>}
       </svg>
@@ -178,19 +183,19 @@ function Chart({ gauge, file, setName, variant, time, horizon }: {
         <div className="pointer-events-none absolute top-7 border border-zinc-700 bg-zinc-950/95 px-2 py-1.5 text-[10px] leading-4"
              style={{ left: Math.min(x(hx!) + 10, W - 190) }}>
           <div className="text-zinc-300">{fmtShort(hover.ms)}Z · {hover.step > 0 ? `+${hover.step}h` : hover.step === 0 ? "now" : `${hover.step}h`}</div>
-          <Row c={C.obs} k={hover.step > 0 ? "realised" : "observed"} v={m(hover.obs)} />
-          {hover.step > 0 && <Row c={C.base} k="TimesFM" v={m(hover.base)} dashed />}
+          <Row c={C.obs} k={hover.step > 0 ? "really happened" : "measured"} v={m(hover.obs)} />
+          {hover.step > 0 && <Row c={C.base} k="old model" v={m(hover.base)} dashed />}
           {hover.step > 0 && <Row c={C.fp} k="FloodPulse" v={m(hover.fp)} />}
-          {hover.step > 0 && hover.lo != null && <Row c={C.fp} k="80% band" v={`${m(hover.lo)}–${m(hover.hi)}`} faint />}
+          {hover.step > 0 && hover.lo != null && <Row c={C.fp} k="likely range" v={`${m(hover.lo)}–${m(hover.hi)}`} faint />}
         </div>
       )}
       <div className="absolute left-12 top-1 flex flex-wrap gap-x-4 text-[10px] text-zinc-400">
-        <Legend c={C.obs} k="Observed (EA gauge)" />
-        <Legend c={C.base} k="TimesFM zero-shot" dashed />
-        <Legend c={C.fp} k="FloodPulse (rain-augmented)" />
-        <Legend c={C.fp} k="80% band*" faint />
+        <Legend c={C.obs} k="River level (measured)" />
+        <Legend c={C.base} k="Old model (river history only)" dashed />
+        <Legend c={C.fp} k="FloodPulse (adds rain)" />
+        <Legend c={C.fp} k="Likely range*" faint />
       </div>
-      <div className="absolute right-2 top-1 text-[9px] text-zinc-600">*TimesFM q10–q90 shifted by booster correction (approximate)</div>
+      <div className="absolute right-2 top-1 text-[9px] text-zinc-600">*approximate 80% range</div>
     </div>
   );
 }

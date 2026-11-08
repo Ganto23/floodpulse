@@ -13,11 +13,11 @@ export default function BasinSidebar({ ranked, selected, onSelect, horizon, time
   return (
     <div className="flex h-full flex-col">
       <div className="border-b border-zinc-800 px-3 py-2">
-        <div className="text-[10px] font-bold tracking-[0.2em] text-accent">BASIN TELEMETRY &amp; RISK INDEX</div>
-        <div className="mt-0.5 text-[10px] text-zinc-500">as of {time} · horizon +{horizon} h · ranked by forecast vs P95→P99</div>
+        <div className="text-[10px] font-bold tracking-[0.2em] text-accent">RIVERS · CLICK ONE TO SEE ITS FORECAST</div>
+        <div className="mt-0.5 text-[10px] text-zinc-500">{time} · looking {horizon} h ahead · most at risk first</div>
       </div>
       <div className="grid grid-cols-[1fr_52px_52px_44px] gap-x-2 border-b border-zinc-900 px-3 py-1 text-[9px] tracking-widest text-zinc-500">
-        <span>GAUGE</span><span className="text-right">LEVEL m</span><span className="text-right">PEAK m</span><span className="text-right">BREACH</span>
+        <span>RIVER GAUGE</span><span className="text-right">NOW m</span><span className="text-right">MAX m</span><span className="text-right">ALERT IN</span>
       </div>
       <ol className="thin-scroll flex-1 overflow-y-auto">
         {ranked.map(({ g, risk, obs, peak, breach }) => {
@@ -40,8 +40,9 @@ export default function BasinSidebar({ ranked, selected, onSelect, horizon, time
         })}
       </ol>
       <div className="border-t border-zinc-800 px-3 py-2 text-[9px] leading-4 text-zinc-500">
-        BREACH = first hour the FloodPulse forecast reaches the gauge's training-period P99 level
-        (a high-level alert proxy, not an EA flood threshold). Peak = forecast maximum within the horizon.
+        <b className="text-zinc-400">ALERT</b> = FloodPulse expects the river to pass its alert line (the level it
+        only exceeds 1% of the time; our proxy, not an official EA flood warning). <b className="text-zinc-400">WATCH</b> =
+        above the 5% line. NOW = measured level; MAX = highest forecast level ahead.
       </div>
     </div>
   );
