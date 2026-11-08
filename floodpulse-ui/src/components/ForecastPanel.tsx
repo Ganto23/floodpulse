@@ -1,22 +1,20 @@
 import { useEffect, useMemo, useRef, useState } from "react";
-import { Pause, Play } from "lucide-react";
 import { HOUR } from "../lib/data";
-import type { GaugeFile, GaugeMeta, Horizon } from "../lib/types";
+import type { GaugeFile, GaugeMeta, Horizon, SetName, Variant } from "../lib/types";
 import { displayName } from "./names";
 
 const HORIZONS: Horizon[] = [6, 12, 24];
 const BACK = 24;                                                    // hours of history left of NOW (forecast gets half the width)
 const C = { obs: "#e2e8f0", base: "#64748b", fp: "#22c3dc", grid: "#1e293b", axis: "#64748b", label: "#94a3b8" };
 const parse = (s: string) => new Date(s.replace(" ", "T")).getTime();
-const fmtDay = (s: string) => new Date(parse(s)).toLocaleString("en-GB", { day: "numeric", month: "short", year: "numeric", hour: "2-digit", minute: "2-digit", timeZone: "UTC" }) + " UTC";
 
-/** Bottom panel: forecast chart (observed, historical baseline, FloodPulse + band), horizon toggles, playback scrubber. */
+/** Forecast chart (observed, historical baseline, FloodPulse + band) with horizon toggles. Playback lives in PlaybackBar. */
 export default function ForecastPanel(p: {
   gauge: GaugeMeta | null; file: GaugeFile | null; time: string | null; horizon: Horizon; onHorizon: (h: Horizon) => void;
-  times: string[]; t: number; onT: (i: number) => void; playing: boolean; onPlay: () => void;
+  setName: SetName; variant: Variant;
 }) {
   return (
-    <div className="flex h-full flex-col px-5 pb-3 pt-4">
+    <div className="flex h-full flex-col px-5 pt-4">
       <div className="flex items-center gap-6">
         <div>
           <div className="text-[11px] font-medium uppercase tracking-[0.18em] text-slate-500">Forecast</div>
@@ -25,7 +23,7 @@ export default function ForecastPanel(p: {
         <div className="flex items-center gap-5 text-[12px] text-slate-400">
           <Key c={C.obs} k="Observed" />
           <Key c={C.base} k="Historical baseline" dotted />
-          <Key c={C.fp} k="FloodPulse (rain-augmented)" />
+          <Key c={C.fp} k={p.variant === "oracle" ? "FloodPulse (perfect-rain upper bound)" : "FloodPulse (rain-augmented)"} />
           <span className="flex items-center gap-2"><span className="h-3 w-5 rounded-sm" style={{ background: C.fp, opacity: 0.25 }} />80% band</span>
         </div>
         <div className="ml-auto flex rounded-md bg-slate-800/60 p-0.5">
@@ -39,18 +37,9 @@ export default function ForecastPanel(p: {
       </div>
 
       <div className="min-h-0 flex-1 py-2">
-        {p.gauge && p.file && p.time ? <Chart file={p.file} time={p.time} horizon={p.horizon} /> : null}
+        {p.gauge && p.file && p.time ? <Chart file={p.file} time={p.time} horizon={p.horizon} setName={p.setName} variant={p.variant} /> : null}
       </div>
 
-      <div className="flex items-center gap-4">
-        <button onClick={p.onPlay} aria-label={p.playing ? "Pause" : "Play"}
-                className="flex h-7 w-7 items-center justify-center rounded-full bg-slate-800 text-slate-200 hover:bg-slate-700">
-          {p.playing ? <Pause size={13} /> : <Play size={13} className="ml-0.5" />}
-        </button>
-        <input type="range" className="scrub" min={0} max={p.times.length - 1} value={p.t}
-               onChange={(e) => p.onT(Number(e.target.value))} aria-label="Replay time" />
-        <span className="w-52 shrink-0 text-right font-mono text-[12px] text-slate-300">{p.time ? fmtDay(p.time) : ""}</span>
-      </div>
     </div>
   );
 }
@@ -64,7 +53,7 @@ function Key({ c, k, dotted }: { c: string; k: string; dotted?: boolean }) {
   );
 }
 
-function Chart({ file, time, horizon }: { file: GaugeFile; time: string; horizon: Horizon }) {
+function Chart({ file, time, horizon, setName, variant }: { file: GaugeFile; time: string; horizon: Horizon; setName: SetName; variant: Variant }) {
   const ref = useRef<HTMLDivElement>(null);
   const [size, setSize] = useState({ w: 800, h: 200 });
   useEffect(() => {
@@ -75,8 +64,8 @@ function Chart({ file, time, horizon }: { file: GaugeFile; time: string; horizon
     return () => ro.disconnect();
   }, []);
 
-  const set = file.sets["2024"];
-  const fc = set?.variants.deployed;
+  const set = file.sets[setName];
+  const fc = set?.variants[variant];
   const model = useMemo(() => {
     if (!set || !fc) return null;
     const t0 = parse(time), obsStart = parse(set.obs_start);
