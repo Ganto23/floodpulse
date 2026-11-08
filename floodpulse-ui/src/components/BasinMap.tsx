@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import DeckGL from "@deck.gl/react";
 import type { PickingInfo } from "@deck.gl/core";
 import { LineLayer, ScatterplotLayer, TextLayer } from "@deck.gl/layers";
@@ -37,6 +37,15 @@ export default function BasinMap({ gauges, geometry, selected, onSelect }: {
 }) {
   const [view, setView] = useState<Record<string, unknown>>(VIEW);
   const [hover, setHover] = useState<PickingInfo<Row> | null>(null);
+  const flooding = useMemo(() => gauges.filter((r) => r.risk === "crit"), [gauges]);
+  const [phase, setPhase] = useState(0);              // 0→1 every 1.6 s, drives the pulsing flood ring
+  useEffect(() => {
+    if (!flooding.length) return;
+    let raf = 0;
+    const tick = (ms: number) => { setPhase((ms % 1600) / 1600); raf = requestAnimationFrame(tick); };
+    raf = requestAnimationFrame(tick);
+    return () => cancelAnimationFrame(raf);
+  }, [flooding.length]);
 
   const segs = useMemo(() => {
     const out: Seg[] = [];
@@ -55,6 +64,13 @@ export default function BasinMap({ gauges, geometry, selected, onSelect }: {
       id: "rivers", data: segs, getSourcePosition: (d) => d.a, getTargetPosition: (d) => d.b,
       getColor: (d) => (d.slug === selected ? [165, 236, 246, 230] : [125, 165, 200, 120]), getWidth: (d) => 0.7 + d.w * 0.6, widthUnits: "pixels",
       updateTriggers: { getColor: [selected] },
+    }),
+    // pulsing red ring on gauges forecast to reach their flood alert threshold
+    new ScatterplotLayer<Row>({
+      id: "flood-pulse", data: flooding, getPosition: (r) => [r.g.lon, r.g.lat],
+      filled: false, stroked: true, radiusUnits: "pixels", lineWidthUnits: "pixels",
+      getRadius: 8 + 20 * phase, getLineWidth: 2.5, getLineColor: [248, 113, 113, Math.round(220 * (1 - phase))],
+      updateTriggers: { getRadius: [phase], getLineColor: [phase] },
     }),
     new ScatterplotLayer<Row>({
       id: "pins", data: gauges, pickable: true, getPosition: (r) => [r.g.lon, r.g.lat],
