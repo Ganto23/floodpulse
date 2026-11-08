@@ -1,7 +1,7 @@
 import { ChevronLeft, ChevronRight, Pause, Play, Zap } from "lucide-react";
 import type { SetName } from "../lib/types";
 
-export interface Preset { id: string; label: string; set: SetName; time: string; gauge: string; note?: string }
+export interface Preset { id: string; label: string; set: SetName; time: string; gauge: string }
 /** A flood event: a run of replay steps where any gauge is forecast to cross (or is above) its alert line. */
 export interface FloodEvent { start: number; end: number; peak: number; actual: boolean }
 
@@ -15,7 +15,6 @@ export default function PlaybackBar(p: {
   events: FloodEvent[]; onPrev: () => void; onNext: () => void;
 }) {
   const n = Math.max(p.times.length - 1, 1);
-  const current = p.events.findIndex((e) => p.t >= e.start && p.t <= e.end);
   return (
     <div className="px-5 pb-3 pt-2">
       {/* event presets */}
@@ -26,13 +25,9 @@ export default function PlaybackBar(p: {
             <button key={pr.id} onClick={() => p.onPreset(pr)}
                     className={`flex items-center gap-1.5 rounded-full border px-3 py-1 text-[12px] transition-colors ${on ? "border-s-fp/60 bg-s-fp/10 text-slate-100" : "border-slate-700 text-slate-400 hover:border-slate-500 hover:text-slate-200"}`}>
               <Zap size={12} className={on ? "text-s-fp" : "text-warn"} /> {pr.label}
-              {pr.note && <span className="text-[10px] text-slate-500">· {pr.note}</span>}
             </button>
           );
         })}
-        <span className="ml-auto text-[11px] text-slate-500">
-          {current >= 0 ? `event ${current + 1} of ${p.events.length}` : `${p.events.length} events in this replay`}
-        </span>
       </div>
 
       {/* transport + timeline */}
