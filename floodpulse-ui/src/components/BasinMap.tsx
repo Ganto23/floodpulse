@@ -1,12 +1,12 @@
 import { useEffect, useMemo, useState } from "react";
 import DeckGL from "@deck.gl/react";
-import type { PickingInfo } from "@deck.gl/core";
+import { FlyToInterpolator, type PickingInfo } from "@deck.gl/core";
 import { LineLayer, ScatterplotLayer, TextLayer } from "@deck.gl/layers";
 import Map from "react-map-gl/maplibre";
 import { m } from "../lib/data";
 import type { RiskRow } from "../lib/risk";
 import type { GaugeMeta, Geometry, Risk } from "../lib/types";
-import { nameParts } from "./names";
+import { mapLabel, nameParts } from "./names";
 
 // Dark vector basemap (MapLibre). To use Mapbox: swap in a mapbox:// style URL and pass mapboxAccessToken.
 const BASEMAP = "https://basemaps.cartocdn.com/gl/dark-matter-nolabels-gl-style/style.json";
@@ -30,22 +30,34 @@ type Seg = { a: [number, number]; b: [number, number]; w: number; slug: string }
 
 /**
  * River channels traced from terrain (D8 flow routing on SRTM) with a soft glow, plus one pin per gauge.
- * Selecting a gauge highlights its river network; the camera stays still so the room isn't disoriented.
+ * Selecting a gauge highlights its river network and gives its pin a pulsing ring (cyan, or red if forecast to flood).
+ * `focus` changes (a card or preset click) fly the camera to that gauge; the page opens on the full overview.
  */
-export default function BasinMap({ gauges, geometry, selected, onSelect }: {
+export default function BasinMap({ gauges, geometry, selected, onSelect, focus }: {
   gauges: Row[]; geometry: Record<string, Geometry>; selected: string | null; onSelect: (s: string) => void;
+  focus: { slug: string; n: number } | null;
 }) {
   const [view, setView] = useState<Record<string, unknown>>(VIEW);
+  const fly = (to: Record<string, number>) => setView((v) => ({ ...v, ...to, transitionDuration: 1800,
+    transitionInterpolator: new FlyToInterpolator({ speed: 0.8 }) }));
+  useEffect(() => {
+    const g = focus && gauges.find((r) => r.g.slug === focus.slug)?.g;
+    if (g) fly({ latitude: g.lat, longitude: g.lon, zoom: 9.2 });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [focus?.n]);
   const [hover, setHover] = useState<PickingInfo<Row> | null>(null);
   const flooding = useMemo(() => gauges.filter((r) => r.risk === "crit"), [gauges]);
-  const [phase, setPhase] = useState(0);              // 0→1 every 1.6 s, drives the pulsing flood ring
+  const sel = gauges.find((r) => r.g.slug === selected);
+  const selFlood = sel?.risk === "crit";
+  const [ms, setMs] = useState(0);                   // animation clock for the pulsing rings
   useEffect(() => {
-    if (!flooding.length) return;
     let raf = 0;
-    const tick = (ms: number) => { setPhase((ms % 1600) / 1600); raf = requestAnimationFrame(tick); };
+    const tick = (t: number) => { setMs(t); raf = requestAnimationFrame(tick); };
     raf = requestAnimationFrame(tick);
     return () => cancelAnimationFrame(raf);
-  }, [flooding.length]);
+  }, []);
+  const phase = (ms % 1600) / 1600;                  // flood rings: 1.6 s
+  const selPhase = (ms % (selFlood ? 900 : 1800)) / (selFlood ? 900 : 1800);   // selected ring: faster when flooding
 
   const segs = useMemo(() => {
     const out: Seg[] = [];
@@ -72,6 +84,19 @@ export default function BasinMap({ gauges, geometry, selected, onSelect }: {
       getRadius: 8 + 20 * phase, getLineWidth: 2.5, getLineColor: [248, 113, 113, Math.round(220 * (1 - phase))],
       updateTriggers: { getRadius: [phase], getLineColor: [phase] },
     }),
+    // selected gauge: a larger double ring so a card click visibly connects to its pin
+    new ScatterplotLayer<Row>({
+      id: "selected-ring", data: sel ? [sel] : [], getPosition: (r) => [r.g.lon, r.g.lat],
+      filled: false, stroked: true, radiusUnits: "pixels", lineWidthUnits: "pixels",
+      getRadius: 12 + 26 * selPhase, getLineWidth: 3,
+      getLineColor: [...(selFlood ? [248, 113, 113] : [6, 182, 212]), Math.round(255 * (1 - selPhase))] as [number, number, number, number],
+      updateTriggers: { getRadius: [selPhase], getLineColor: [selPhase, selFlood] },
+    }),
+    new ScatterplotLayer<Row>({
+      id: "selected-halo", data: sel ? [sel] : [], getPosition: (r) => [r.g.lon, r.g.lat],
+      filled: false, stroked: true, radiusUnits: "pixels", lineWidthUnits: "pixels", getRadius: 13, getLineWidth: 2,
+      getLineColor: selFlood ? [248, 113, 113, 255] : [6, 182, 212, 255], updateTriggers: { getLineColor: [selFlood] },
+    }),
     new ScatterplotLayer<Row>({
       id: "pins", data: gauges, pickable: true, getPosition: (r) => [r.g.lon, r.g.lat],
       getRadius: (r) => (r.g.slug === selected ? 9 : 6), radiusUnits: "pixels", stroked: true, lineWidthUnits: "pixels",
@@ -81,7 +106,7 @@ export default function BasinMap({ gauges, geometry, selected, onSelect }: {
     }),
     new TextLayer<Row>({
       id: "labels", data: gauges, getPosition: (r) => [r.g.lon, r.g.lat],
-      getText: (r) => nameParts(r.g.slug, r.g.name)[0].replace(/^River /, ""),
+      getText: (r) => mapLabel(r.g.slug, r.g.name),
       getSize: 12, getColor: (r) => (r.g.slug === selected ? [226, 232, 240, 255] : [148, 163, 184, 220]),
       getPixelOffset: [14, 0], getTextAnchor: "start", fontFamily: "Inter, sans-serif", characterSet: "auto",
       updateTriggers: { getColor: [selected] },
@@ -95,6 +120,10 @@ export default function BasinMap({ gauges, geometry, selected, onSelect }: {
               controller layers={layers} getCursor={({ isHovering }) => (isHovering ? "pointer" : "grab")}>
         <Map mapStyle={BASEMAP} reuseMaps onLoad={(e) => slateBasemap(e.target)} />
       </DeckGL>
+      <button onClick={() => fly(VIEW)}
+              className="absolute right-3 top-3 rounded-md border border-slate-700 bg-slate-900/90 px-3 py-1.5 text-[12px] text-slate-300 hover:border-slate-500 hover:text-slate-100">
+        All gauges
+      </button>
       {o && hover && (
         <div className="pointer-events-none absolute z-10 rounded-md border border-slate-700 bg-slate-900/95 px-3 py-2 text-[12px]"
              style={{ left: hover.x + 12, top: hover.y + 12 }}>

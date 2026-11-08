@@ -33,10 +33,8 @@ export default function BasinSidebar({ ranked, selected, onSelect }: {
             <li key={g.slug}>
               <button onClick={() => onSelect(g.slug)}
                       className={`w-full rounded-lg border px-4 py-3 text-left transition-colors ${active ? "border-s-fp/50 bg-slate-800/80" : "border-slate-800 bg-slate-800/30 hover:bg-slate-800/60"}`}>
-                <div className="flex items-baseline justify-between gap-2">
-                  <span className="truncate text-[14px] font-medium text-slate-100">{river}</span>
-                  <span className="truncate text-[11px] text-slate-500">{place}</span>
-                </div>
+                <div className="truncate text-[15px] font-medium text-slate-100">{place || river}</div>
+                <div className="truncate text-[12px] text-slate-400">{place ? river : ""}</div>
                 <span className={`mt-2 inline-flex items-center gap-1.5 rounded px-2 py-0.5 font-mono text-[11px] font-semibold ring-1 ${b.cls}`}>
                   <span className={`h-2 w-2 rounded-full ${b.dot}`} />{b.text}
                 </span>

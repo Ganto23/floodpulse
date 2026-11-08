@@ -17,3 +17,7 @@ export const displayName = (slug: string, fallback: string) => {
   const [river, place] = nameParts(slug, fallback);
   return place ? `${river} · ${place}` : river;
 };
+
+/** Map pin label: the location (matching the cards), except where two gauges share one (Mytholmroyd). */
+export const mapLabel = (slug: string, fallback: string) =>
+  slug === "cragg_dauber_bridge" ? "Cragg Brook" : (nameParts(slug, fallback)[1].split(",")[0] || nameParts(slug, fallback)[0]);

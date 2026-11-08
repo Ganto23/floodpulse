@@ -47,7 +47,9 @@ export default function FloodPulseDashboard() {
   const [t, setT] = useState(0);
   const [playing, setPlaying] = useState(false);
   const [err, setErr] = useState<string | null>(null);
-  const target = useRef<string | null>(START);  // time to land on once a replay's status file loads
+  const target = useRef<string | null>(START);
+  const [focus, setFocus] = useState<{ slug: string; n: number } | null>(null);   // map fly-to requests
+  const pick = (slug: string) => { setSelected(slug); setFocus((f) => ({ slug, n: (f?.n ?? 0) + 1 })); };  // time to land on once a replay's status file loads
   const variant = REPLAY[setName].variant;
 
   useEffect(() => {
@@ -119,7 +121,7 @@ export default function FloodPulseDashboard() {
   const jump = (i: number) => { setPlaying(false); setT(i); };
   const goPreset = (pr: Preset) => {
     setPlaying(false);
-    setSelected(pr.gauge);
+    pick(pr.gauge);
     if (pr.set === setName) { const i = status.times.indexOf(pr.time); if (i >= 0) setT(i); }
     else { target.current = pr.time; setSetName(pr.set); }
   };
@@ -154,11 +156,11 @@ export default function FloodPulseDashboard() {
       </header>
 
       <aside className="min-h-0 border-r border-slate-800">
-        <BasinSidebar ranked={ranked} selected={selected} onSelect={setSelected} />
+        <BasinSidebar ranked={ranked} selected={selected} onSelect={pick} />
       </aside>
 
       <main className="relative min-h-0">
-        <BasinMap gauges={ranked} geometry={geometry} selected={selected} onSelect={setSelected} />
+        <BasinMap gauges={ranked} geometry={geometry} selected={selected} onSelect={pick} focus={focus} />
       </main>
 
       <section className="col-span-full flex min-h-0 flex-col border-t border-slate-800">
