@@ -156,8 +156,10 @@ def run(slug: str, catch: dict) -> dict:
     t0 = time.time()
     ctx = [pd.Series(y[o - CTX + 1:o + 1]).interpolate(limit_area="inside").ffill().bfill().to_numpy(np.float32)
            for o in all_o]
-    pt, _ = tfm().forecast(horizon=H, inputs=ctx)
+    pt, qt = tfm().forecast(horizon=H, inputs=ctx)
     traj = dict(zip(all_o, np.asarray(pt)[:, -H:]))
+    qt = np.asarray(qt)[:, -H:, :]                     # [..., mean, q10 … q90]
+    q10 = dict(zip(all_o, qt[..., 1])); q90 = dict(zip(all_o, qt[..., -1]))
     t_tfm = time.time() - t0
 
     # ---- feature rows ------------------------------------------------------
@@ -265,9 +267,11 @@ def run(slug: str, catch: dict) -> dict:
                     "surge_bias": float((p - yt)[surge].mean()) if surge.any() else None,
                     "surge_rows": int(surge.sum()),
                 }
-            if os.environ.get("FP_DUMP") and set_name == "2024":
+            if os.environ.get("FP_DUMP"):
+                tq10 = np.stack([q10[x] for x in origins]).ravel()
+                tq90 = np.stack([q90[x] for x in origins]).ravel()
                 np.savez_compressed(Path(os.environ["FP_DUMP"]) / f"{slug}_{set_name}_{var}.npz",
-                                    yt=yt, o=o, h=h, valid=valid, ssi=ssi[o], **preds)
+                                    yt=yt, o=o, h=h, valid=valid, ssi=ssi[o], tfm_q10=tq10, tfm_q90=tq90, **preds)
             vres["crest"] = crest_metrics(preds, yt, o, h, t, valid, origins, y_raw, idx, set_name)
             vres["warning"] = warning_metrics(preds, yt, o, h, t, valid, origins, y_raw, p99, set_name)
             sres["variants"][var] = vres

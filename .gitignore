@@ -19,3 +19,7 @@ eval_harness/data/flood_*.csv
 eval_harness/data/gridpulse.csv
 eval_harness/data/flood_*_d2.csv
 eval_harness/results/audit/*.npz
+eval_harness/results/dashboard/*.npz
+floodpulse-ui/node_modules/
+floodpulse-ui/dist/
+floodpulse-ui/tsconfig.tsbuildinfo

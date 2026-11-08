@@ -1,132 +1,118 @@
-# UrbanPulse
+# FloodPulse
 
-Quantitative alt-data terminal. It takes crowdsourced spatial telemetry (Pokémon GO PokéStops, Gyms and Lures),
-adds Open-Meteo weather and OpenStreetMap infrastructure, denoises it with Tucker tensor decomposition,
-forecasts the latent temporal factors zero-shot (TimesFM), and emits automated spatial-momentum signals.
+**Rain-augmented river-level forecasting for 9 northern UK gauges, built only from free public data and tested
+the way a quant would test a signal: held out, ablated, and audited.**
+
+> **Headline:** real, archived rain forecasts cut 6–24 h river-level forecast error by a median **25–45%** across
+> 9 gauges. The baseline is a model using river history alone; the range runs from strictly-public 48 h-old
+> forecasts to 24 h-old ones. The gain is positive at **9/9** gauges.
+> **The bottleneck isn't the river model, it's rain-forecast quality.** With real 2024 forecasts, the system catches
+> 46% of high-level crossings with ~1.7 h mean warning. With a perfect rain forecast, the same model warns ~14–15 h
+> ahead on held-out mega-storms.
+
+The dashboard is a **backtest replay**, not live telemetry. Everything you see is held-out model output. →
+[`floodpulse-ui/`](floodpulse-ui) · full evidence: [`eval_harness/REPORT_FLOODPULSE_FINAL.md`](eval_harness/REPORT_FLOODPULSE_FINAL.md) ·
+hostile audit: [`eval_harness/AUDIT_FLOODPULSE.md`](eval_harness/AUDIT_FLOODPULSE.md)
+
+---
+
+## 1. Alternative data, ingested raw
+
+| Source | What | Why it's alt-data |
+|---|---|---|
+| **EA Hydrology API** | 15-min river stage, 10 gauges, 2019–2024 (~1.6 M readings) | sensor telemetry, not a vendor product |
+| **EA tipping-bucket rain gauges** | 3 nearest per river, hourly | ground truth for rain; reanalysis smooths convective cells |
+| **Open-Meteo Previous-Runs** | *issued* day-ahead NWP rain forecasts, archived as issued | the only honest way to backtest "with forecasts": no hindsight |
+| **Open-Meteo ERA5** | rain, soil moisture (0–7, 7–28 cm), snowfall | soil saturation decides whether rain becomes runoff |
+| **AWS Terrain Tiles (SRTM)** | DEM, mosaicked per catchment | physical routing |
+| **NRFA** | official catchment areas and descriptors | external validation of our DEM delineation |
+
+Two ingestion failures were handled rather than hidden:
+- The EA's gateway throttled parallel bursts, so ingestion runs sequentially with backoff.
+- Open-Meteo's elevation quota counts per point and ran out, so the DEM switched to terrain tiles.
+
+## 2. Physical invariants before black-box ML
+
+- **Catchments from first principles.** Priority-flood depression filling, D8 flow routing and flow accumulation on a
+  121×121 DEM grid per gauge. DEM catchment areas match NRFA within **5% at 7 of 8** referenced gauges. (The outlet
+  is snapped to the NRFA area, so this is partly by construction. Cragg Brook, with no reference, snapped onto the
+  Calder. Both are disclosed.)
+- **Hydraulic lag.** Kirpich time of concentration from longest flow path and relief: 2.4 h (Calder) to 13.6 h
+  (Eden). Against measured rain→peak lags: **Spearman ρ = 0.64, p = 0.064, n = 9, not significant.** It matches
+  8 rivers within ~3 h and **misses the lake-fed Derwent** (4.3 h vs 39 h) because lake storage isn't modelled.
+  That's a known physics gap, diagnosed after the fact.
+- **Runoff physics as features.** Soil-saturation index × rain intensity², plus "arrival rain": rain falling one
+  DEM lag before the target hour.
+
+## 3. Model: zero-shot foundation model + residual surge booster
 
 ```
-loader (DATASET_MODE) ─► StandardSpatialEvent ─► H3 res-9 grid
-      + Open-Meteo ERA5 (rain/temp/wind)  + OSM (transit / footways / buildings)
-  ─► X[cells × time × 8 features] ─► Tucker (TensorLy) ─► denoised surface + U_t latent factors
-  ─► TimesFM / Chronos zero-shot forecast of U_t ─► projected per-cell forecasts (nowcast + monthly→2030)
-  ─► ΔS/Δt momentum, robust-z signals, gradient vectors, k-ring catchments ─► FastAPI ─► deck.gl terminal
+EA level history ──► TimesFM 2.5 (zero-shot, 512 h context) ──► 24 h trajectory
+                                                   │
+rain gauges, soil saturation, DEM lag, issued/observed future rain ──► HistGradientBoosting on TimesFM residual
+                                                   │      (quantile loss q=0.6, ×5 weight in high-runoff states)
+                                                   ▼
+                                  FloodPulse forecast (+ approximate 80% band)
 ```
 
-## Quick start
+- **Why a residual booster:** TimesFM alone extrapolates calmly and *doesn't anticipate surges*. On storm windows it
+  under-predicts crests by ~93% of the rise. The booster learns when TimesFM under-shoots.
+- **Real-forecast result (2024, 9 gauges):** **−25% MAE vs TimesFM, −41% vs persistence, −45% on surge hours**, and
+  better at 9/9 gauges.
+- **Ablation:** the physics features add little *on top of* the booster. They extend storm warnings with perfect
+  rain (15.4 vs 11.4 h on Ciara) but raise false alarms. Most of the gain is the booster itself, and we say so.
+
+## 4. Evaluation design (where the honesty lives)
+
+- **Held-out everything:**
+  - 2024 is held out entirely.
+  - Storms Ciara/Dennis (Feb 2020) and Babet (Oct 2023) are excluded ±7 days from training.
+  - Every scaler and threshold is fit on training data only.
+- **Three rain-information regimes, never mixed up:**
+  - *past rain only* (realistic floor);
+  - *real issued forecasts* (deployable, 2024);
+  - *perfect future rain* (upper bound, labelled as such everywhere).
+- **Forecast-latency stress test:** results re-run with 48 h-old forecasts that were certainly public.
+- **Metrics that matter for warnings:** crest magnitude and timing error, sustained-warning lead time, hit rate,
+  false-alarm ratio. Small samples are reported with Wilson 95% CIs (Babet crest capture 3/7 = 43%, CI 16–75%).
+
+| | Real issued forecasts (2024) | Perfect rain (upper bound) |
+|---|---|---|
+| Threshold crossings caught | **46%** of 61 (CI 34–58%) | 79% |
+| Mean sustained warning | **1.7 h** | 5.4 h (2024) · 15.4 h Ciara · 13.8 h Babet |
+| Storm crest under-prediction (median, % of rise) | — (no archived forecasts pre-2024) | −55% Ciara · −30% Babet |
+
+## 5. Radical honesty: what this is *not*
+
+- **Not a comparison with Environment Agency operational forecasts,** which aren't publicly archived. Our baseline is
+  "river history without rain."
+- **Not an early-warning system with today's forecasts.** ~2 h mean lead isn't enough. The pitch is that rain
+  forecasts are the bottleneck, and we quantify how much better forecasts would be worth (up to ~14 h).
+- **Not a forward-in-time storm test.** Storm-window models were fit on 2019–2023, which includes years after Ciara.
+- **Known data issues:**
+  - 7 tipping-bucket artifacts pass QC (1 in the test set, with measured impact ≤ 0.11 m);
+  - up to 13% of hours fall back from gauge rain to ERA5;
+  - ERA5 isn't real-time.
+- **Corrected along the way:** the first "River Calder" gauge was actually Cragg Brook. The real Calder gives
+  −37% / −44% / −50%. The DEM-lag correlation fell from 0.88 to 0.64 once the Derwent finished. Both corrections
+  are in the record.
+
+## Run it
 
 ```bash
-# backend (Python 3.11)
-cd backend
-uv venv --python 3.11 .venv && uv pip install -r pyproject.toml --extra dev
-.venv/bin/uvicorn main:app --reload --port 8000
+# evaluation harness (Python 3.11)
+cd eval_harness && uv venv --python 3.11 .venv && uv pip install --python .venv/bin/python \
+  pandas numpy scipy statsmodels requests pillow scikit-learn torch "jax[cpu]" \
+  "timesfm[torch,xreg] @ https://github.com/google-research/timesfm/archive/refs/heads/master.zip"
+.venv/bin/python multi_river_fetch.py      # EA + Open-Meteo ingestion (sequential, cached)
+.venv/bin/python multi_river_phase1.py     # cross-gauge forecast-value test
+.venv/bin/python elevation_features.py     # DEM catchments, Kirpich lag, geometry export
+FP_DUMP=results/dashboard FP_OUT=results/dashboard .venv/bin/python floodpulse_stress.py   # ~45 min
+.venv/bin/python floodpulse_report.py && .venv/bin/python audit_forecast_lag.py
+.venv/bin/python export_dashboard.py       # → floodpulse-ui/public/data
 
-# frontend
-cd frontend && npm install && npm run dev      # http://localhost:5173 (proxies /api → :8000)
+# dashboard
+cd ../floodpulse-ui && npm install && npm run dev   # http://localhost:5174
 ```
 
-The API comes up immediately and runs the pipeline in the background. The first cold run makes live
-Overpass and Open-Meteo calls (about 1–2 min). After that, responses are cached in `data/cache/`.
-Put real datasets in `data/raw/` (see [data/raw/README.md](data/raw/README.md)). For the Pokémon demo, run
-`./scripts/fetch_kaggle_predictemall.sh` first. It downloads 296k real 2016 spawn sightings, and the pipeline
-focuses on Prague by default.
-
-### Enable the transformer forecaster
-
-Without a transformer backend, the engine uses a damped-Holt model and the UI marks the
-forecaster `[DEGRADED]`. To install one:
-
-```bash
-cd backend
-uv pip install -r pyproject.toml --extra timesfm     # Google TimesFM 2.5 (PyTorch)
-# or
-uv pip install -r pyproject.toml --extra chronos     # Amazon Chronos-Bolt fallback
-```
-
-## Switching datasets
-
-Set `DATASET_MODE` in `backend/config.py`, or use `URBANPULSE_DATASET_MODE=housing uvicorn main:app`.
-The modes are `pokemon` | `osm` | `housing`. The math, forecaster, API and UI stay the same. Only the loader and
-the UI descriptors (`MODE_PROFILES`) change. To add a mode, subclass `BaseDataLoader`, then register it in
-`loaders/registry.py` and `MODE_PROFILES`.
-
-Every setting can be overridden with an `URBANPULSE_<NAME>` environment variable (e.g. `URBANPULSE_TARGET_BBOX=40.70,-74.02,40.76,-73.96`).
-
-## API
-
-| Endpoint | Returns |
-|---|---|
-| `GET /api/status` | Source health (rows ingested, Open-Meteo rows, OSM node count, forecaster backend), tensor stats, pipeline log |
-| `GET /api/timeline` | Frame list: monthly history → nowcast history → nowcast forecast → monthly forecast to 2030 |
-| `GET /api/spatial-frame?timestamp=` | H3 GeoJSON with realized / denoised / forecast (+ 80% band) / ΔS/Δt / signal per cell, plus lures, momentum vectors, catchments and signal cards |
-| `GET /api/evaluation` | Pre-registered dev→holdout study: forecast skill at the chosen scale, spatial persistence, OSM→activity correlations |
-| `GET /api/backtest` | Rolling-origin out-of-sample evaluation: UrbanPulse vs. no-denoise ablation, persistence, historical mean, t−24h, zero floor |
-| `GET /api/infrastructure` | OSM transit nodes and pedestrian polylines for the map context layer |
-| `POST /api/refresh` | Re-run the pipeline |
-
-## Layout
-
-```
-backend/
-  config.py               DATASET_MODE + MODE_PROFILES + all tunables
-  loaders/                base.py (BaseDataLoader, StandardSpatialEvent), pokemon/osm/weather/housing loaders, registry
-  data/h3_grid.py         H3 indexing, polygons, k-rings, static-layer aggregation
-  engine/                 tensor_engine (Tucker), forecast_engine (TimesFM→Chronos→Holt), signals, pipeline
-  main.py, schemas.py     FastAPI + Pydantic contracts
-frontend/src/             App, MapCanvas (deck.gl + MapLibre), TimelineScrubber, TelemetrySidebar, SignalsPanel, lib/types.ts
-data/raw/                 your real datasets (git-ignored)
-```
-
-## Backtest
-
-After the map goes live, the pipeline runs `engine/backtest.py`. At 24 origins spread over the back half of the
-history, it refits everything on the data before that origin only: the scaler, Tucker and the forecaster. It then
-forecasts the next 90 minutes per H3 cell and scores the result against the real sightings. Windows with fewer than
-20 sightings are scanner outages, so they're excluded and counted. Metrics are pooled WAPE, allocation (share)
-error, and precision@K. Results appear in the sidebar and at `/api/backtest`.
-
-Results on Kaggle Prague (res 9, 15-min bins, damped-Holt forecaster, 15 valid origins):
-
-| model | WAPE ↓ | share err ↓ | P@20 ↑ |
-|---|---|---|---|
-| **UrbanPulse** | **1.232** | 0.877 | 0.163 |
-| same forecaster, no denoising | 1.426 | 0.830 | 0.240 |
-| persistence | 1.460 | 0.816 | 0.227 |
-| historical mean | 1.605 | 0.876 | 0.183 |
-| seasonal t−24h | 1.704 | 0.928 | 0.090 |
-| predict zero | 1.000 | 1.000 | — |
-
-UrbanPulse has 16% lower WAPE than persistence and 14% lower than the same forecaster without denoising. But
-per-cell 15-min counts are so sparse that no model beats predicting zero on WAPE. On *where* activity lands
-(share error, P@K), persistence and the raw forecaster do as well or better. Re-run after enabling TimesFM.
-
-## Holdout correlation study (`engine/evaluation.py`)
-
-The protocol was fixed before any results were seen. The **final 48 h** are held out. Scale and metric are chosen
-on the earlier dev period only, from business-motivated candidates: H3 res 9/8/7 (block, neighbourhood or courier
-zone) × 90 min, 3 h or 6 h decision windows. The selection rule is the highest dev Pearson(log1p forecast,
-log1p actual). The holdout is then scored once. Spearman only counts cells active during *training*, because
-conditioning on "active in either period" is Berkson-biased.
-
-Dev selected **res 7 (~5 km² courier zones) × 6 h windows**. Holdout results (Prague, damped-Holt forecaster):
-
-| Test | Result |
-|---|---|
-| A. Forecast, 7 windows: Pearson(log) / Spearman / WAPE | UrbanPulse 0.34 / 0.24 / **0.93** · no-denoise 0.39 / 0.23 / 1.02 · persistence **0.47 / 0.41** / 1.34 · hist. mean 0.38 / 0.32 / 1.63 |
-| B. Spatial persistence (dev rate → holdout rate per zone) | Pearson(log) **0.65**, Spearman 0.45, 50% of top-decile zones stay top-decile |
-| C. OSM → activity, 93 of 101 zones covered | transit r = **0.52**, pedestrian network r = 0.45, buildings r = 0.26 (holdout). OLS fit on dev: R² 0.25 in-sample, 0.16 spatial-block CV, 0.14 holdout |
-
-Reading these results: activity is predictable **in space** (B), and open infrastructure data explains a real share of
-*where* players were (C). Only UrbanPulse beats the predict-zero floor on volume (WAPE < 1). For **ranking zones over
-the next 6 h**, though, simple persistence wins. A has only 7 holdout windows, so treat its differences as indicative.
-
-## Notes on honesty (for judges)
-
-- The status panel shows exactly which source fed each layer: `ONLINE`, `DEGRADED` (fallback in use) or `OFFLINE`.
-- The multi-year regime only switches on with at least 12 months of real history. The nowcast bin size
-  coarsens automatically (e.g. 15 min → 3 h) when the stream is too sparse, and the pipeline log records the change.
-- The Kaggle dataset covers only 6 days. The multi-year regime stays off in Pokémon mode, so the 2026–2030 view
-  is only available in `osm` or `housing` mode.
-- OSM infrastructure is fetched in Overpass tiles that cover the whole study area (21 tiles for Prague; the first
-  run takes ~10 min, then it's cached). Coverage checks use only the tiles that actually loaded.
-- With the OSM fallback, timestamps are *last-edit* times, so recent months are over-represented. Use a real
-  scanner dump to get true foot-traffic dynamics.
+`docs/URBANPULSE.md` documents the earlier UrbanPulse prototype in this repo.

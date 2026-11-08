@@ -1,0 +1,11 @@
+Warning: You are sending unauthenticated requests to the HF Hub. Please set a HF_TOKEN to enable higher rate limits and faster downloads.
+== calder_mytholmroyd done in 282s: ['2024', 'babet']
+== cragg_dauber_bridge done in 426s: ['2024', 'ciara_dennis', 'babet']
+== aire_armley done in 426s: ['2024', 'ciara_dennis', 'babet']
+== calder_whalley done in 394s: ['2024', 'babet']
+== eden_sheepmount done in 418s: ['2024', 'ciara_dennis', 'babet']
+== greta_low_briery done in 89s: ['ciara_dennis']
+== wharfe_otley done in 432s: ['2024', 'ciara_dennis', 'babet']
+== ribble_samlesbury done in 395s: ['2024']
+== kent_victoria_bridge done in 430s: ['2024', 'ciara_dennis', 'babet']
+== derwent_ouse_bridge done in 431s: ['2024', 'ciara_dennis', 'babet']

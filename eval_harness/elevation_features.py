@@ -197,6 +197,24 @@ def analyse(slug: str) -> dict:
     cy, cx = LA[mask].mean(), LO[mask].mean()
     cdist = math.hypot((cy - lat) * 111.32, (cx - lon) * 111.32 * math.cos(math.radians(lat)))
 
+    # geometry export for the dashboard: catchment mesh cells + D8 channel segments (real DEM output)
+    geo_dir = OUT / "geometry"
+    geo_dir.mkdir(exist_ok=True)
+    cells = [[round(float(LO[i, j]), 5), round(float(LA[i, j]), 5), round(float(z[i, j]))]
+             for i, j in zip(*np.where(mask))]
+    thr = max(8, int(0.01 * mask.sum()))            # channel = upstream area ≥ 1% of catchment
+    segs = []
+    for i, j in zip(*np.where(mask & (acc >= thr))):
+        a, b = down[i, j]
+        if a >= 0:
+            segs.append([round(float(LO[i, j]), 5), round(float(LA[i, j]), 5), round(float(LO[a, b]), 5),
+                         round(float(LA[a, b]), 5), round(float(math.log10(acc[i, j] * cell_km2)), 2)])
+    (geo_dir / f"{slug}.json").write_text(json.dumps({
+        "cell_deg": [round(2 * half / (n - 1) / 111.32, 6),
+                     round(2 * half / (n - 1) / (111.32 * math.cos(math.radians(lat))), 6)],
+        "outlet": [round(float(LO[outlet]), 5), round(float(LA[outlet]), 5)],
+        "cells": cells, "channels": segs}))
+
     return {
         "slug": slug, "river": river, "grid": {"n": n, "cell_m": round(dx), "half_width_km": round(half, 1)},
         "dem_area_km2": round(area, 1), "nrfa_area_km2": ref.get("catchment-area"),
