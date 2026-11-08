@@ -23,3 +23,5 @@ eval_harness/results/dashboard/*.npz
 floodpulse-ui/node_modules/
 floodpulse-ui/dist/
 floodpulse-ui/tsconfig.tsbuildinfo
+eval_harness/results/loro/*.npz
+eval_harness/results/loro/run_log.txt
