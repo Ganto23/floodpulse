@@ -82,12 +82,37 @@ rain gauges, soil saturation, DEM lag, issued/observed future rain ──► His
 | Mean sustained warning | **1.7 h** | 5.4 h (2024) · 15.4 h Ciara · 13.8 h Babet |
 | Storm crest under-prediction (median, % of rise) | — (no archived forecasts pre-2024) | −55% Ciara · −30% Babet |
 
+### Unseen rivers (leave-one-river-out)
+
+Every number above uses a booster trained on that river's own history (2019–2023), tested on its 2024. To test a
+river the model has never seen, [`eval_harness/loro.py`](eval_harness/loro.py) trains **one shared booster on the
+other rivers only** and scores it on the held-out river's 2024, using issued rain forecasts. Levels are scaled by
+each river's own pre-2024 range, so one model serves rivers of different size. As a reference, each river's own
+booster was retrained with identical settings (2024 origins every 3 h). Results are in
+[`results/loro/loro.json`](eval_harness/results/loro/loro.json).
+
+| Error reduction vs TimesFM (2024, issued forecasts) | Own-river booster | **Unseen river** |
+|---|---|---|
+| Median, 9 rivers | −25% (better at 9/9) | **−18% (better at 8/9)** |
+| Median excluding Derwent | — | −19% |
+| At +6 h / +12 h / +24 h | −19% / −23% / −28% | −10% / −16% / −23% |
+
+- **It transfers to the 8 rainfall-driven rivers.** Unseen-river error is within 0–2 mm of the own-river model on
+  5 of them. It's worse on the Eden (77 vs 72 mm) and the Ribble (88 vs 78 mm), but still well ahead of TimesFM.
+- **It fails on the lake-fed Derwent:** 54 mm error vs TimesFM's 18 mm (3× worse). The shared model learned
+  "rain → sharp rise" from flashy rivers. Bassenthwaite Lake absorbs that rise, so the model over-predicts
+  (bias +25 mm). Catchment descriptors (area, Tc, BFIHOST, SAAR) didn't help, because no training river has a
+  lake. This is the same physics gap as the DEM-lag miss. Deploying to a new river needs a check that it
+  resembles the training rivers, or a lake-storage term.
+- We did not tune anything after seeing these results.
+
 ## 5. Radical honesty: what this is *not*
 
 - **Not a comparison with Environment Agency operational forecasts,** which aren't publicly archived. Our baseline is
   "river history without rain."
 - **Not an early-warning system with today's forecasts.** ~2 h mean lead isn't enough. The pitch is that rain
   forecasts are the bottleneck, and we quantify how much better forecasts would be worth (up to ~14 h).
+- **Not proven on every unseen river.** A shared model works on unseen rainfall-driven rivers (−18% vs TimesFM) but fails on the lake-fed Derwent; see "Unseen rivers" above.
 - **Not a forward-in-time storm test.** Storm-window models were fit on 2019–2023, which includes years after Ciara.
 - **Known data issues:**
   - 7 tipping-bucket artifacts pass QC (1 in the test set, with measured impact ≤ 0.11 m);
