@@ -1,44 +1,60 @@
-import { AlertOctagon, AlertTriangle, Check, CircleDashed } from "lucide-react";
 import { m } from "../lib/data";
 import type { RiskRow } from "../lib/risk";
-import type { GaugeMeta } from "../lib/types";
-import { displayName } from "./names";
+import type { GaugeMeta, Risk } from "../lib/types";
+import { nameParts } from "./names";
 
 type Row = RiskRow & { g: GaugeMeta };
-const STATE = {
-  crit: { Icon: AlertOctagon, cls: "text-crit" },
-  warn: { Icon: AlertTriangle, cls: "text-warn" },
-  ok: { Icon: Check, cls: "text-ok" },
-  none: { Icon: CircleDashed, cls: "text-dim" },
-} as const;
 
-/** ACTIVE GAUGES: name, then "now → forecast max (alert in N h)". */
+const BADGE: Record<Risk, { label: string; cls: string }> = {
+  crit: { label: "CRITICAL", cls: "bg-crit/10 text-crit ring-crit/30" },
+  warn: { label: "WATCH", cls: "bg-warn/10 text-warn ring-warn/30" },
+  ok: { label: "NORMAL", cls: "bg-ok/10 text-ok ring-ok/25" },
+  none: { label: "NO DATA", cls: "bg-slate-800 text-slate-500 ring-slate-700" },
+};
+
+/** Active Gauge Telemetry: one card per gauge — name, current level, predicted peak, status. */
 export default function BasinSidebar({ ranked, selected, onSelect }: {
   ranked: Row[]; selected: string | null; onSelect: (s: string) => void;
 }) {
   return (
-    <div className="flex h-full flex-col bg-panel">
-      <div className="border-b border-line px-4 py-3 text-[11px] tracking-[0.2em] text-dim">ACTIVE GAUGES</div>
-      <ol className="thin-scroll flex-1 overflow-y-auto">
+    <div className="flex h-full flex-col">
+      <h2 className="px-5 pb-3 pt-5 text-[11px] font-medium uppercase tracking-[0.18em] text-slate-500">Active Gauge Telemetry</h2>
+      <ol className="thin-scroll flex-1 space-y-2.5 overflow-y-auto px-4 pb-4">
         {ranked.map(({ g, risk, obs, peak, breach }) => {
-          const { Icon, cls } = STATE[risk];
+          const [river, place] = nameParts(g.slug, g.name);
+          const b = BADGE[risk];
+          const active = selected === g.slug;
           return (
             <li key={g.slug}>
               <button onClick={() => onSelect(g.slug)}
-                      className={`flex w-full items-start gap-3 border-b border-line/60 px-4 py-3 text-left hover:bg-line/40 ${selected === g.slug ? "bg-line/50" : ""}`}>
-                <Icon size={14} className={`mt-0.5 shrink-0 ${cls}`} aria-label={risk} />
-                <span className="min-w-0">
-                  <span className="block truncate text-[12px] text-ink">{displayName(g.slug, g.name)}</span>
-                  <span className="mt-1 block tabular-nums text-[12px] text-dim">
-                    {m(obs)}m → <span className="text-ink">{m(peak)}m</span>
-                    {breach != null && <span className={`ml-2 ${cls}`}>(+{breach}h)</span>}
+                      className={`w-full rounded-lg border px-4 py-3 text-left transition-colors ${active ? "border-s-fp/50 bg-slate-800/80" : "border-slate-800 bg-slate-800/30 hover:bg-slate-800/60"}`}>
+                <div className="flex items-start justify-between gap-2">
+                  <div className="min-w-0">
+                    <div className="truncate text-[14px] font-medium text-slate-100">{river}</div>
+                    <div className="truncate text-[12px] text-slate-500">{place}</div>
+                  </div>
+                  <span className={`shrink-0 rounded px-2 py-0.5 font-mono text-[10px] font-medium ring-1 ${b.cls}`}>
+                    {risk === "crit" && breach != null ? `+${breach}h ` : ""}{b.label}
                   </span>
-                </span>
+                </div>
+                <div className="mt-3 grid grid-cols-2 gap-2">
+                  <Metric k="Current" v={`${m(obs)} m`} />
+                  <Metric k="Predicted peak" v={`${m(peak)} m`} />
+                </div>
               </button>
             </li>
           );
         })}
       </ol>
+    </div>
+  );
+}
+
+function Metric({ k, v }: { k: string; v: string }) {
+  return (
+    <div>
+      <div className="text-[10px] uppercase tracking-wider text-slate-500">{k}</div>
+      <div className="font-mono text-[15px] tabular-nums text-slate-200">{v}</div>
     </div>
   );
 }
