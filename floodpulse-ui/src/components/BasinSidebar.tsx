@@ -1,19 +1,6 @@
 import { m } from "../lib/data";
-import type { RiskRow } from "../lib/risk";
-import type { GaugeMeta } from "../lib/types";
 import { nameParts } from "./names";
-
-type Row = RiskRow & { g: GaugeMeta };
-
-/** Badge text + style. Alert = FloodPulse forecasts the gauge's flood alert threshold (P99) within the horizon. */
-function badge({ risk, obs, breach, g }: Row) {
-  if (risk === "crit" && obs != null && obs >= g.p99_mm)
-    return { text: "ABOVE FLOOD ALERT", cls: "bg-crit/20 text-red-200 ring-crit/60", dot: "bg-crit flood-dot" };
-  if (risk === "crit") return { text: `FLOOD ALERT IN +${breach}H`, cls: "bg-crit/20 text-red-200 ring-crit/60", dot: "bg-crit flood-dot" };
-  if (risk === "warn") return { text: "WATCH", cls: "bg-warn/15 text-amber-200 ring-warn/50", dot: "bg-warn" };
-  if (risk === "ok") return { text: "NORMAL", cls: "bg-ok/10 text-green-200 ring-ok/40", dot: "bg-ok" };
-  return { text: "NO DATA", cls: "bg-slate-800 text-slate-400 ring-slate-700", dot: "bg-slate-500" };
-}
+import { statusBadge as badge, type Row } from "./status";
 
 /** Active Gauge Telemetry: name, status, and current / peak levels in the context of the flood alert threshold. */
 export default function BasinSidebar({ ranked, selected, onSelect }: {

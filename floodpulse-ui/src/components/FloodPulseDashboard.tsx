@@ -4,6 +4,7 @@ import { riskOf } from "../lib/risk";
 import type { GaugeFile, Geometry, Horizon, Manifest, Risk, SetName, StatusFile, Variant } from "../lib/types";
 import BasinSidebar from "./BasinSidebar";
 import BasinMap from "./BasinMap";
+import GaugeHUD from "./GaugeHUD";
 import ForecastPanel from "./ForecastPanel";
 import PlaybackBar, { type FloodEvent, type Preset } from "./PlaybackBar";
 
@@ -161,6 +162,7 @@ export default function FloodPulseDashboard() {
 
       <main className="relative min-h-0">
         <BasinMap gauges={ranked} geometry={geometry} selected={selected} onSelect={pick} focus={focus} />
+        <GaugeHUD row={ranked.find((r) => r.g.slug === selected)} horizon={horizon} />
       </main>
 
       <section className="col-span-full flex min-h-0 flex-col border-t border-slate-800">
