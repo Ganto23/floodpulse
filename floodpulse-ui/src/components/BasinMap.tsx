@@ -108,7 +108,7 @@ export default function BasinMap({ gauges, geometry, selected, onSelect, focus }
       id: "labels", data: gauges, getPosition: (r) => [r.g.lon, r.g.lat],
       getText: (r) => mapLabel(r.g.slug, r.g.name),
       getSize: 12, getColor: (r) => (r.g.slug === selected ? [226, 232, 240, 255] : [148, 163, 184, 220]),
-      getPixelOffset: [14, 0], getTextAnchor: "start", fontFamily: "Inter, sans-serif", characterSet: "auto",
+      getPixelOffset: (r) => (r.g.slug === "cragg_dauber_bridge" ? [14, 9] : r.g.slug === "calder_mytholmroyd" ? [14, -7] : [14, 0]), getTextAnchor: "start", fontFamily: "Inter, sans-serif", characterSet: "auto",
       updateTriggers: { getColor: [selected] },
     }),
   ];
