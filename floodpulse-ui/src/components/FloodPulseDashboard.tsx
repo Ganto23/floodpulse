@@ -23,11 +23,12 @@ const REPLAY: Record<SetName, { variant: Variant; title: string; note: string }>
   babet: { variant: "oracle", title: "Storm Babet replay (Oct 2023)", note: "perfect-rain upper bound: no archived rain forecasts before 2024" },
   ciara_dennis: { variant: "oracle", title: "Storm Ciara replay (Feb 2020)", note: "perfect-rain upper bound: no archived rain forecasts before 2024" },
 };
-// Moments with the most gauges forecast to cross their alert line within each event (found by scanning the status files).
+// Babet / Dec 2024: the moment FloodPulse first called the Calder crossing its alert line ahead of time (river still below it).
+// Ciara: the moment with the most gauges forecast to cross (Calder·Mytholmroyd is not in the Ciara replay).
 const PRESETS: Preset[] = [
-  { id: "babet", label: "Storm Babet", set: "babet", time: "2023-10-20 06:00:00+00:00", gauge: "calder_mytholmroyd", note: "perfect rain" },
+  { id: "babet", label: "Storm Babet", set: "babet", time: "2023-10-19 05:00:00+00:00", gauge: "calder_mytholmroyd", note: "perfect rain" },
   { id: "ciara", label: "Storm Ciara", set: "ciara_dennis", time: "2020-02-09 14:00:00+00:00", gauge: "eden_sheepmount", note: "perfect rain" },
-  { id: "dec24", label: "Dec 2024 Surge", set: "2024", time: "2024-12-05 00:00:00+00:00", gauge: "calder_mytholmroyd" },
+  { id: "dec24", label: "Dec 2024 Surge", set: "2024", time: "2024-12-04 18:00:00+00:00", gauge: "calder_mytholmroyd" },
 ];
 const START = "2024-12-04 18:00:00+00:00";      // opens on a real moment: Calder normal now, alert line crossed ~23 h later
 const PLAY_MS = 1000;                           // one replay step per second

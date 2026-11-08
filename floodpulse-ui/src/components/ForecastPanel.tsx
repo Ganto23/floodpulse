@@ -5,7 +5,7 @@ import { displayName } from "./names";
 
 const HORIZONS: Horizon[] = [6, 12, 24];
 const BACK = 24;                                                    // hours of history left of NOW (forecast gets half the width)
-const C = { obs: "#cbd5e1", base: "#64748b", fp: "#06b6d4", grid: "#1e293b", axis: "#64748b", label: "#94a3b8", flood: "#f87171" };
+const C = { truth: "#8fb8c4", obs: "#cbd5e1", base: "#64748b", fp: "#06b6d4", grid: "#1e293b", axis: "#64748b", label: "#94a3b8", flood: "#f87171" };
 const parse = (s: string) => new Date(s.replace(" ", "T")).getTime();
 
 /** Forecast chart (observed, historical baseline, FloodPulse + band) with horizon toggles. Playback lives in PlaybackBar. */
@@ -13,6 +13,7 @@ export default function ForecastPanel(p: {
   gauge: GaugeMeta | null; file: GaugeFile | null; time: string | null; horizon: Horizon; onHorizon: (h: Horizon) => void;
   setName: SetName; variant: Variant;
 }) {
+  const [showBase, setShowBase] = useState(false);       // historical baseline: hidden by default to keep the chart clean
   return (
     <div className="flex h-full flex-col px-5 pt-4">
       <div className="flex items-center gap-6">
@@ -22,13 +23,16 @@ export default function ForecastPanel(p: {
         </div>
         <div className="flex items-center gap-5 text-[12px] text-slate-400">
           <Key c={C.obs} k="Observed (past)" />
-          <span className="flex items-center gap-2 opacity-60"><svg width="22" height="6"><line x1="0" x2="22" y1="3" y2="3" stroke={C.obs} strokeWidth="1.5" opacity="0.5" /></svg>Actual (after NOW)</span>
-          <Key c={C.base} k="Historical baseline" dotted />
           <Key c={C.fp} k={p.variant === "oracle" ? "FloodPulse forecast (perfect-rain upper bound)" : "FloodPulse forecast"} />
-          <Key c={C.flood} k="Flood alert threshold (P99)" dashed />
+          <span className="flex items-center gap-2"><svg width="22" height="6"><line x1="0" x2="22" y1="3" y2="3" stroke={C.truth} strokeWidth="1.5" strokeDasharray="4 3" opacity="0.6" /></svg>Actual ground truth</span>
+          <Key c={C.flood} k="Alert threshold (P99)" dashed />
+          {showBase && <Key c={C.base} k="Historical baseline" dotted />}
           <span className="flex items-center gap-2"><span className="h-3 w-5 rounded-sm" style={{ background: C.fp, opacity: 0.25 }} />80% band</span>
         </div>
-        <div className="ml-auto flex rounded-md bg-slate-800/60 p-0.5">
+        <label className="ml-auto flex cursor-pointer items-center gap-1.5 text-[11px] text-slate-500 hover:text-slate-300">
+          <input type="checkbox" checked={showBase} onChange={(e) => setShowBase(e.target.checked)} className="accent-slate-500" /> baseline
+        </label>
+        <div className="flex rounded-md bg-slate-800/60 p-0.5">
           {HORIZONS.map((h) => (
             <button key={h} onClick={() => p.onHorizon(h)}
                     className={`rounded px-3 py-1 font-mono text-[12px] ${h === p.horizon ? "bg-slate-700 text-slate-100" : "text-slate-400 hover:text-slate-200"}`}>
@@ -39,7 +43,7 @@ export default function ForecastPanel(p: {
       </div>
 
       <div className="min-h-0 flex-1 py-2">
-        {p.gauge && p.file && p.time ? <Chart file={p.file} time={p.time} horizon={p.horizon} setName={p.setName} variant={p.variant} threshold={p.gauge.p99_mm} /> : null}
+        {p.gauge && p.file && p.time ? <Chart file={p.file} time={p.time} horizon={p.horizon} setName={p.setName} variant={p.variant} threshold={p.gauge.p99_mm} showBase={showBase} /> : null}
       </div>
 
     </div>
@@ -55,7 +59,7 @@ function Key({ c, k, dotted, dashed }: { c: string; k: string; dotted?: boolean;
   );
 }
 
-function Chart({ file, time, horizon, setName, variant, threshold }: { file: GaugeFile; time: string; horizon: Horizon; setName: SetName; variant: Variant; threshold: number }) {
+function Chart({ file, time, horizon, setName, variant, threshold, showBase }: { file: GaugeFile; time: string; horizon: Horizon; setName: SetName; variant: Variant; threshold: number; showBase: boolean }) {
   const ref = useRef<HTMLDivElement>(null);
   const [size, setSize] = useState({ w: 800, h: 200 });
   useEffect(() => {
@@ -78,11 +82,11 @@ function Chart({ file, time, horizon, setName, variant, threshold }: { file: Gau
       const at = (arr: (number | null)[][]) => (k >= 0 && step >= 1 && step <= horizon ? arr[k]?.[step - 1] ?? null : null);
       return { obs, base: at(fc.baseline), fp: at(fc.floodpulse), lo: at(fc.band_lo), hi: at(fc.band_hi) };
     });
-    const vals = rows.flatMap((r) => [r.obs, r.base, r.fp, r.lo, r.hi]).filter((v): v is number => v != null);
+    const vals = rows.flatMap((r) => [r.obs, showBase ? r.base : null, r.fp, r.lo, r.hi]).filter((v): v is number => v != null);
     vals.push(threshold);                                      // the flood alert line is always on screen
     const lo = Math.min(...vals), hi = Math.max(...vals), pad = (hi - lo) * 0.1 || 50;
     return { rows, ymin: lo - pad, ymax: hi + pad, hasFc: k >= 0 };
-  }, [set, fc, time, horizon, threshold]);
+  }, [set, fc, time, horizon, threshold, showBase]);
 
   if (!model) return <div ref={ref} className="h-full" />;
 
@@ -130,9 +134,9 @@ function Chart({ file, time, horizon, setName, variant, threshold }: { file: Gau
         <text x={M.l + 8} y={y(threshold) - 6} fontSize={11} fill={C.flood}>Flood alert threshold (P99) · {(threshold / 1000).toFixed(2)}m</text>
         {band && <path d={band} fill={C.fp} opacity={0.22} />}
         <path d={series("obs", 0, BACK)} fill="none" stroke={C.obs} strokeWidth={2.5} />
-        {/* what the river actually did after NOW: faint, for comparison */}
-        <path d={series("obs", BACK, model.rows.length - 1)} fill="none" stroke={C.obs} strokeWidth={1.5} opacity={0.3} />
-        <path d={series("base", BACK + 1, BACK + horizon, true)} fill="none" stroke={C.base} strokeWidth={2.5} strokeDasharray="1 5" strokeLinecap="round" />
+        {/* actual ground truth after NOW: thin, muted, dashed */}
+        <path d={series("obs", BACK, model.rows.length - 1)} fill="none" stroke={C.truth} strokeWidth={1.5} strokeDasharray="4 3" opacity={0.4} />
+        {showBase && <path d={series("base", BACK + 1, BACK + horizon, true)} fill="none" stroke={C.base} strokeWidth={2.5} strokeDasharray="1 5" strokeLinecap="round" />}
         <path d={series("fp", BACK + 1, BACK + horizon, true)} fill="none" stroke={C.fp} strokeWidth={3} />
         {/* NOW divider */}
         <line x1={x(BACK)} x2={x(BACK)} y1={M.t - 2} y2={M.t + ih} stroke="#cbd5e1" strokeWidth={1.25} strokeDasharray="4 4" />
